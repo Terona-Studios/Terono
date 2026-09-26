@@ -12,7 +12,6 @@ Everything from installing to building your own look, step by step.
 - [8. Updating](#8-updating)
 - [9. Troubleshooting](#9-troubleshooting)
 - [10. Uninstalling](#10-uninstalling)
-- [Phones: Android and iPhone](#phones-android-and-iphone)
 
 ---
 
@@ -25,8 +24,6 @@ Everything from installing to building your own look, step by step.
 | **Chrome, Brave, Edge, Opera, Vivaldi** | [Browser extension](#chrome-brave-edge-opera-vivaldi) |
 | **Firefox** | [Firefox add-on](#firefox) |
 | Only want the look, no settings | [Theme only](#theme-only) |
-| An **Android** phone | [VendroidEnhanced app](#android) |
-| An **iPhone** | Not possible, see [iPhone](#iphone) |
 
 ---
 
@@ -226,7 +223,6 @@ On a slow PC or a laptop on battery, turn on **Lite** (performance mode). It sto
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
   2. Replace the files in your folder.
   3. Click **↻ reload** on the extension card and refresh Discord.
-- **Android (VendroidEnhanced):** updates by itself. The app downloads the newest Terono build every time it starts.
 - **Theme only:** updates by itself.
 
 ---
@@ -272,50 +268,5 @@ Those match Discord's English names. Set Discord to English, or type the names e
 
   Then delete `~/Terono`.
 - **Browser:** remove the extension on the extensions page. If you had the normal Vencord extension, switch it back on.
-- **Android:** in the Terono settings, scroll to the bottom and tap **Use VendroidEnhanced's build**, then close and reopen the app.
 - **Theme only:** remove the link in **Online Themes**.
 
----
-
-## Phones: Android and iPhone
-
-### Android
-
-Discord's own Android app can't load Vencord. **VendroidEnhanced** can: it's an Android app that opens Discord's website with Vencord inside, and it can load the Terono build instead of its normal one.
-
-1. Install **VendroidEnhanced** from [vendroid.nin0.dev](https://vendroid.nin0.dev/download) and log in to Discord in it.
-2. Open **User Settings** (the ⚙ at the bottom of the **☰** menu), go to the **VendroidEnhanced** section, and under **Other** tap **Open developer settings**.
-3. Under **Allow remote debugging** there's a warning: *"This setting is only relevant to people looking to develop VendroidEnhanced…"*. That's the **Vencord location** setting. Tap the empty box right under the warning (it shows a faint `https://example.com/browser.js`) and paste:
-
-   ```
-   https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Android.js
-   ```
-
-   The box normally says `unified` (VendroidEnhanced's own build): replace that with the link. It saves as you type; there's no save button.
-4. Close the app completely (swipe it away in recent apps) and open it again.
-
-That's it. Terono turns itself on and adds its theme. On every start the app shows a short message that the build is being downloaded again. That's how it keeps Terono up to date, and it's normal.
-
-**What's different on a phone:**
-
-- Discord uses its own phone layout: one column at a time, the **☰** button opens the server and channel list, and the member list button opens the members over the chat. Terono follows that layout, so **Server List**, **Channels Side**, **Members Side** and the header positions only apply on desktop.
-- Everything else works the same: colors, cards (glass, gradient, card media), backgrounds, fonts, logo, role counts, chat bar, menus, loading screen, profiles.
-- The **VendroidEnhanced** settings tab belongs to VendroidEnhanced's own build, so it isn't there while Terono is loaded. To go back, open the Terono settings, scroll to the bottom and tap **Use VendroidEnhanced's build** (it puts `unified` back in that box), then restart the app.
-- VendroidEnhanced is a community app, not made by Discord or Vencord. It has no voice chat yet.
-
-#### Test it on your phone
-
-After step 4, go through this list:
-
-1. **Start-up:** the loading screen shows the Terono logo and "Terono Discord".
-2. **Look:** panels have Terono's rounded cards and your colors, and the chat has even gaps on both sides.
-3. **Navigation:** tap **☰**, the server and channel list slides in. Pick a channel and the chat opens. The Android back button brings the list back.
-4. **Members:** tap the member list button in the channel header. The list fills the screen; tap it again to get back to the chat.
-5. **Settings:** **Settings → Vencord → Plugins → Terono**. Change **Accent Preset**: the color changes straight away.
-6. **Profiles:** apply a profile you exported on your PC (**Import JSON**). Your desktop look shows up on the phone.
-
-If something looks wrong, take a screenshot and [open an issue](https://github.com/Terona-Studios/Terono/issues).
-
-### iPhone
-
-There's no Vencord app for iPhone, and Discord's iPhone app can't be modded without sideloading, so Terono can't run there. On an iPhone you'll see Discord's normal look.

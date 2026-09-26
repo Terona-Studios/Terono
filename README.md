@@ -78,23 +78,6 @@ curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.
 
 Terono and its theme turn on by themselves.
 
-### Android
-
-Through **VendroidEnhanced**, an Android app that opens Discord with Vencord inside:
-
-1. Install [VendroidEnhanced](https://vendroid.nin0.dev/download) and log in.
-2. **User Settings → VendroidEnhanced → Other → Open developer settings**. In the box under the *"only relevant to people looking to develop VendroidEnhanced"* warning (that's **Vencord location**; it normally says `unified`), replace the text with:
-
-```
-https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Android.js
-```
-
-3. Close the app completely and open it again.
-
-Discord's own phone layout is kept (one column, ☰ menu); everything visual carries over. Details, a test checklist and how to switch back are in the [tutorial](docs/TUTORIAL.md#android).
-
-**iPhone:** not possible. There's no Vencord app for iPhone.
-
 ### Theme only (no plugin)
 
 Works on normal Vencord, no installer needed:

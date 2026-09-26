@@ -6,7 +6,6 @@
 
 import * as DataStore from "@api/DataStore";
 import { definePluginSettings } from "@api/Settings";
-import { Button } from "@components/Button";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { OptionType } from "@utils/types";
@@ -25,9 +24,6 @@ export const LOGO_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp",
 export const LOGO_DATA_RE = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/;
 export const HEX_RE = /^#[0-9a-f]{6}$/i;
 
-// Phones (phone browsers, VendroidEnhanced): Discord switches to its own one-column phone layout and opens/closes
-// the sidebar itself, so the desktop layout options (server list side, mirrored columns, header zones) stay off there.
-export const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 export const URL_RE = /^https:\/\/[^\s"'()\\]+$/;
 
 export const ACCENTS: Record<string, string> = {
@@ -430,7 +426,7 @@ export const settings = definePluginSettings({
     /* --- layout --- */
     serverList: {
         type: OptionType.SELECT,
-        description: "Server list position. Phones always use Discord's own phone layout.",
+        description: "Server list position.",
         options: [
             { label: "Left (Discord default)", value: "left", default: true },
             { label: "Top (horizontal)", value: "top" },
@@ -687,37 +683,11 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: () => <PluginHub />,
     },
-
-    /* --- VendroidEnhanced (Android): the Terono build replaces its own, so offer the way back here --- */
-    vendroid: {
-        type: OptionType.COMPONENT,
-        hidden: () => !window.VencordMobileNative,
-        component: () => (
-            <div>
-                <HeadingTertiary>VendroidEnhanced</HeadingTertiary>
-                <Paragraph>Go back to VendroidEnhanced's normal build (removes Terono from this phone). Restart the app afterwards.</Paragraph>
-                <Button size="small" variant="secondary" style={{ marginTop: 6 }} onClick={() => {
-                    window.VencordMobileNative?.setString("vencordLocation", VENDROID_BUILD);
-                    showToast("Done. Close and reopen the app to finish.", Toasts.Type.SUCCESS);
-                }}>Use VendroidEnhanced's build</Button>
-            </div>
-        ),
-    },
 });
-
-// what VendroidEnhanced itself stores for "its own build"
-const VENDROID_BUILD = "unified";
-
-declare global {
-    interface Window {
-        // VendroidEnhanced's Android bridge (only exists inside that app)
-        VencordMobileNative?: { setString(key: string, value: string): void; };
-    }
-}
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "mobile", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, mobile: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -854,9 +824,6 @@ export function applyHeader() {
     ].filter(Boolean).map(sel => `html[data-dz-dm] ${sel}`);
     const hide = [...words.map(w => `.title_f75fb0 .toolbar__9293f > [aria-label*="${w}" i]`), ...serverHide, ...dmHide];
 
-    // phones: Discord's phone header is just the menu button, the channel name and the member list button; keep it as is
-    if (IS_MOBILE) return sheet("header", "");
-
     sheet("header", `html:root {
     --dz-h-name: ${ZONE[s.headerName] ?? 1};
     --dz-h-buttons: ${ZONE[s.headerButtons] ?? 1};
@@ -871,30 +838,6 @@ html[data-dz-dm]:root {
     requestAnimationFrame(attachHeader);
 }
 
-// phones: the visible column gets the same gap on both sides (the desktop layout only pads the side next to the members),
-// the member list (full width on phones, over the chat) drops its desktop gap, and the fade after the channel name
-// (taller than the phone header) is hidden
-const MOBILE_CSS = `
-html[data-dz-mobile] .page__5e434 {
-    padding-left: var(--gap) !important;
-    padding-right: var(--gap) !important;
-}
-html[data-dz-mobile] .content_f75fb0 > .container_c8ffbb,
-html[data-dz-mobile] .content_f75fb0 > .container_c8ffbb > .membersWrap_c8ffbb {
-    width: 100% !important;
-    min-width: 0 !important;
-    margin-left: 0 !important;
-}
-html[data-dz-mobile] .content_f75fb0:has(> .container_c8ffbb) > .chatContent_f75fb0 {
-    display: none;
-}
-html[data-dz-mobile] .membersWrap_c8ffbb .members_c8ffbb {
-    padding-left: 8px;
-}
-html[data-dz-mobile] .title_f75fb0 .children__9293f::after {
-    display: none;
-}`;
-
 // attributes, not classes: Discord rewrites <html class> on theme changes
 export function applyAttrs() {
     const s = settings.store;
@@ -904,10 +847,9 @@ export function applyAttrs() {
     d.dzPlugin = "";
     d.dzBg = s.background;
     d.dzCardFill = s.cardPreset === "custom" ? s.cardFill : "solid";
-    d.dzGuilds = IS_MOBILE ? "left" : s.serverList;
-    d.dzChannels = IS_MOBILE ? "left" : s.channelsSide;
-    d.dzMembers = IS_MOBILE ? "right" : s.membersSide;
-    flag("dzMobile", IS_MOBILE);
+    d.dzGuilds = s.serverList;
+    d.dzChannels = s.channelsSide;
+    d.dzMembers = s.membersSide;
     flag("dzGlass", s.cardStyle === "glass" || cardActive);
     flag("dzCardMedia", cardActive);
     flag("dzGlassBlur", s.cardStyle === "glass" && s.glassBlur);
@@ -916,8 +858,7 @@ export function applyAttrs() {
     flag("dzQuick", s.quickIcon);
 
     // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
-    sheet("mobile", IS_MOBILE ? MOBILE_CSS : "");
-    sheet("hsl", IS_MOBILE ? "" : s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
+    sheet("hsl", s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
 }
 
 /* ---------- fonts ---------- */
@@ -1199,5 +1140,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzMobile"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia"]) delete d[k];
 }

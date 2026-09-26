@@ -2689,32 +2689,3 @@ html:not([data-dz-plugin]) .container_a2f514 .tipTitle_a2f514 {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
 }
-
-/* ================= PHONES (Discord's phone layout: VendroidEnhanced, phone browsers) ================= */
-
-/* one column at a time: same gap on both sides */
-html.is-mobile .page__5e434 {
-    padding-left: var(--gap) !important;
-    padding-right: var(--gap) !important;
-}
-
-/* the member list opens full width over the chat */
-html.is-mobile .content_f75fb0 > .container_c8ffbb,
-html.is-mobile .content_f75fb0 > .container_c8ffbb > .membersWrap_c8ffbb {
-    width: 100% !important;
-    min-width: 0 !important;
-    margin-left: 0 !important;
-}
-
-html.is-mobile .content_f75fb0:has(> .container_c8ffbb) > .chatContent_f75fb0 {
-    display: none;
-}
-
-html.is-mobile .membersWrap_c8ffbb .members_c8ffbb {
-    padding-left: 8px;
-}
-
-/* the fade after the channel name is taller than the phone header */
-html.is-mobile .title_f75fb0 .children__9293f::after {
-    display: none;
-}
