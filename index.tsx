@@ -263,9 +263,16 @@ async function migrate() {
 // every start: point an existing Terono theme link at this version (never adds one back)
 function pinThemeLink() {
     const links = Settings.themeLinks;
-    if (!links.some(l => THEME_LINK_RE.test(l) && l !== THEME_LINK)) return;
-    const pinned = links.map(l => THEME_LINK_RE.test(l) ? THEME_LINK : l);
-    Settings.themeLinks = pinned.filter((l, i) => pinned.indexOf(l) === i);
+    if (links.some(l => THEME_LINK_RE.test(l) && l !== THEME_LINK)) {
+        const pinned = links.map(l => THEME_LINK_RE.test(l) ? THEME_LINK : l);
+        Settings.themeLinks = pinned.filter((l, i) => pinned.indexOf(l) === i);
+    }
+
+    // an old local copy (from earlier setups) next to the link loads the whole theme twice: double the style
+    // work on every page switch, and its outdated rules win over the link's
+    const local = /^(terono|darkness)\.theme\.css$/i;
+    if (Settings.themeLinks.some(l => THEME_LINK_RE.test(l)) && Settings.enabledThemes.some(t => local.test(t)))
+        Settings.enabledThemes = Settings.enabledThemes.filter(t => !local.test(t));
 }
 
 async function migrateLegacy(raw: Record<string, any>) {
