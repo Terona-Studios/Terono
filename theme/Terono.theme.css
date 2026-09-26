@@ -3,7 +3,7 @@
  * @author Terona Studios
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 12.0.0
+ * @version 12.1.1
  * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -2280,8 +2280,19 @@ html[data-dz-guilds="top"] .page__5e434 {
     padding-top: calc(var(--gap) + 2px);
 }
 
+/* HSL positions the bottom row from the channel sidebar, so it drifts over the panels whenever
+   the sidebar height changes. Pin it to the window edge and reserve its height + one gap instead. */
 html[data-dz-guilds="bottom"] .guilds__5e434 {
-    translate: 0 calc(var(--gap) * -1);
+    position: fixed !important;
+    top: calc(100vh - var(--gap)) !important;
+    left: var(--gap) !important;
+    margin: 0 !important;
+    translate: none !important;
+    z-index: 3;
+}
+
+html[data-dz-guilds="bottom"] .base__5e434[data-fullscreen="false"] .content__5e434 {
+    margin-bottom: calc(var(--custom-guild-list-width) + var(--gap));
 }
 
 html[data-dz-guilds="bottom"] :is(.sidebar__5e434, .page__5e434) {
@@ -2320,10 +2331,6 @@ html[data-dz-channels="right"]:is([data-dz-guilds="top"], [data-dz-guilds="botto
 
 html[data-dz-channels="right"][data-dz-guilds="top"] .guilds__5e434 {
     top: calc(var(--custom-app-top-bar-height) + var(--custom-guild-list-width)) !important;
-}
-
-html[data-dz-channels="right"][data-dz-guilds="bottom"] .guilds__5e434 {
-    top: calc(100vh - var(--gap)) !important;
 }
 
 html[data-dz-guilds="right"] .page__5e434 {
