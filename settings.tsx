@@ -1,0 +1,932 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import * as DataStore from "@api/DataStore";
+import { definePluginSettings } from "@api/Settings";
+import { HeadingTertiary } from "@components/Heading";
+import { Paragraph } from "@components/Paragraph";
+import { OptionType } from "@utils/types";
+import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
+
+import { TERONO_LOGO } from "./assets";
+import { attachHeader } from "./header";
+import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
+import { PluginHub } from "./hub";
+import { ProfilesPanel } from "./profiles";
+
+export const DEFAULT_LOGO = TERONO_LOGO;
+export const LOGO_KEY = "Terono_homeLogo";
+export const LOGO_MAX_BYTES = 5 * 1024 * 1024;
+export const LOGO_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"];
+export const LOGO_DATA_RE = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/;
+export const HEX_RE = /^#[0-9a-f]{6}$/i;
+export const URL_RE = /^https:\/\/[^\s"'()\\]+$/;
+
+export const ACCENTS: Record<string, string> = {
+    blue: "#429cff", red: "#ff4d5e", purple: "#9b6dff", green: "#3ecf8e", pink: "#ff5fa8", orange: "#ff8a3d",
+};
+
+export const CARDS: Record<string, { card: string; text: string; }> = {
+    dark: { card: "#070708", text: "#f1f2f4" },
+    gray: { card: "#1e1f22", text: "#f2f3f5" },
+    white: { card: "#f4f5f7", text: "#1a1b1e" },
+};
+
+// [xs, sm, md, lg, xl]
+const RADII: Record<string, [number, number, number, number, number]> = {
+    sharp: [2, 2, 2, 2, 2],
+    soft: [4, 6, 8, 12, 16],
+    curved: [6, 8, 12, 18, 24],
+    round: [8, 12, 16, 24, 32],
+};
+
+export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
+    | "cardColor" | "cardColor2" | "textColor" | "bgBase" | "bgColor1" | "bgColor2";
+
+const COLOR_DEFAULTS: Record<ColorKey, string> = {
+    accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
+    cardColor: "#070708", cardColor2: "#0b1a33", textColor: "#f1f2f4",
+    bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
+};
+
+/* ================= live color preview =================
+   Dragging a picker only rewrites one small <style>; settings are saved once when the picker closes. */
+
+const preview: Partial<Record<ColorKey, string>> = {};
+let previewFrame = 0;
+
+function ColorRow({ id, label, note }: { id: ColorKey; label: string; note: string; }) {
+    const value = settings.use([id])[id] as string;
+    const ref = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const el = ref.current!;
+        const commit = () => {
+            delete preview[id];
+            settings.store[id] = el.value;
+            if (id === "accent") settings.store.accentPreset = "custom";
+            applyVars();
+        };
+        el.addEventListener("change", commit);
+        return () => el.removeEventListener("change", commit);
+    }, []);
+
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <input
+                key={value}
+                ref={ref}
+                type="color"
+                defaultValue={value}
+                onChange={e => {
+                    preview[id] = e.currentTarget.value;
+                    if (!previewFrame) previewFrame = requestAnimationFrame(() => { previewFrame = 0; applyVars(); });
+                }}
+                style={{ width: 44, height: 30, border: "none", padding: 0, background: "none", cursor: "pointer", flexShrink: 0 }}
+            />
+            <div>
+                <HeadingTertiary>{label}</HeadingTertiary>
+                <Paragraph>{note}</Paragraph>
+            </div>
+        </div>
+    );
+}
+
+const color = (id: ColorKey, label: string, note: string, hidden?: () => boolean) => ({
+    type: OptionType.COMPONENT as const,
+    default: COLOR_DEFAULTS[id],
+    hidden,
+    component: () => <ColorRow id={id} label={label} note={note} />,
+});
+
+/* ================= home logo upload ================= */
+
+let uploadedLogo: string | null = null;
+export const getUploadedLogo = () => uploadedLogo;
+
+export async function setUploadedLogo(dataUrl: string | null) {
+    uploadedLogo = dataUrl;
+    if (dataUrl) await DataStore.set(LOGO_KEY, dataUrl);
+    else await DataStore.del(LOGO_KEY);
+    applyLogo();
+}
+
+export async function loadUploadedLogo() {
+    const stored = await DataStore.get<string>(LOGO_KEY);
+    uploadedLogo = typeof stored === "string" && LOGO_DATA_RE.test(stored) ? stored : null;
+    applyLogo();
+}
+
+function LogoUpload() {
+    const [preview, setPreview] = useState(uploadedLogo);
+
+    async function onFile(file: File | undefined) {
+        if (!file) return;
+        if (!LOGO_TYPES.includes(file.type)) return showToast("Use a PNG, JPG, GIF, WEBP or SVG image.", Toasts.Type.FAILURE);
+        if (file.size > LOGO_MAX_BYTES) return showToast("Image must be 5 MB or smaller.", Toasts.Type.FAILURE);
+
+        const dataUrl = await new Promise<string>((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(file);
+        });
+        if (!LOGO_DATA_RE.test(dataUrl)) return showToast("That file isn't a valid image.", Toasts.Type.FAILURE);
+
+        settings.store.logoSource = "file";
+        await setUploadedLogo(dataUrl);
+        setPreview(dataUrl);
+        showToast("Home logo updated.", Toasts.Type.SUCCESS);
+    }
+
+    return (
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {preview && <img src={preview} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />}
+            <div>
+                <HeadingTertiary>Home logo file</HeadingTertiary>
+                <Paragraph>PNG, JPG, GIF, WEBP or SVG up to 5 MB. Stored only on this PC.</Paragraph>
+                <input type="file" accept={LOGO_TYPES.join(",")} onChange={e => onFile(e.currentTarget.files?.[0])} style={{ marginTop: 6, color: "var(--text-default)" }} />
+            </div>
+        </div>
+    );
+}
+
+/* ================= background media + custom font (files kept on this PC, IndexedDB) ================= */
+
+export const MEDIA_KEY = "Terono_bgMedia";
+export const FONT_KEY = "Terono_customFont";
+const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
+const FONT_MAX_BYTES = 10 * 1024 * 1024;
+const MEDIA_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "video/mp4", "video/webm"];
+const FONT_EXT = /\.(ttf|otf|woff2?)$/i;
+
+let mediaBlob: Blob | null = null;
+let mediaUrl: string | null = null;
+let customFont: FontFace | null = null;
+
+export async function loadStoredFiles() {
+    const media = await DataStore.get<Blob>(MEDIA_KEY);
+    mediaBlob = media instanceof Blob && MEDIA_TYPES.includes(media.type) ? media : null;
+    const font = await DataStore.get<ArrayBuffer>(FONT_KEY);
+    if (font instanceof ArrayBuffer) await registerFont(font);
+    applyMedia();
+    applyFont();
+}
+
+async function registerFont(buf: ArrayBuffer) {
+    if (customFont) document.fonts.delete(customFont);
+    customFont = null;
+    try {
+        const face = new FontFace("Terono Custom", buf);
+        await face.load();
+        document.fonts.add(face);
+        customFont = face;
+    } catch {
+        showToast("That font file could not be loaded.", Toasts.Type.FAILURE);
+    }
+}
+
+function FileRow({ title, note, accept, onFile }: { title: string; note: string; accept: string; onFile(f: File): void; }) {
+    return (
+        <div>
+            <HeadingTertiary>{title}</HeadingTertiary>
+            <Paragraph>{note}</Paragraph>
+            <input type="file" accept={accept} onChange={e => { const f = e.currentTarget.files?.[0]; if (f) onFile(f); }} style={{ marginTop: 6, color: "var(--text-default)" }} />
+        </div>
+    );
+}
+
+async function onMediaFile(file: File) {
+    if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
+    if (file.size > MEDIA_MAX_BYTES) return showToast("Background file must be 100 MB or smaller.", Toasts.Type.FAILURE);
+    mediaBlob = file;
+    await DataStore.set(MEDIA_KEY, file);
+    settings.store.bgMediaSource = "file";
+    applyMedia();
+    showToast("Background updated.", Toasts.Type.SUCCESS);
+}
+
+async function onFontFile(file: File) {
+    if (!FONT_EXT.test(file.name)) return showToast("Use a TTF, OTF, WOFF or WOFF2 font.", Toasts.Type.FAILURE);
+    if (file.size > FONT_MAX_BYTES) return showToast("Font must be 10 MB or smaller.", Toasts.Type.FAILURE);
+    const buf = await file.arrayBuffer();
+    await registerFont(buf);
+    if (!customFont) return;
+    await DataStore.set(FONT_KEY, buf);
+    settings.store.font = "custom";
+    applyFont();
+    showToast("Custom font applied.", Toasts.Type.SUCCESS);
+}
+
+// Google Fonts (fonts.googleapis.com / gstatic are on Vencord's default allow-list)
+const FONTS: Record<string, string> = {
+    discord: "", terono: "Figtree", inter: "Inter", roboto: "Roboto", poppins: "Poppins", montserrat: "Montserrat",
+    nunito: "Nunito", outfit: "Outfit", manrope: "Manrope", dmsans: "DM Sans", jakarta: "Plus Jakarta Sans",
+    lexend: "Lexend", rubik: "Rubik", quicksand: "Quicksand", spacegrotesk: "Space Grotesk", sora: "Sora",
+    urbanist: "Urbanist", worksans: "Work Sans", plex: "IBM Plex Sans", ubuntu: "Ubuntu", comfortaa: "Comfortaa",
+    jetbrains: "JetBrains Mono",
+};
+
+/* ================= settings ================= */
+
+const custom = (key: "accentPreset" | "cardPreset") => () => settings.store[key] !== "custom";
+
+export const settings = definePluginSettings({
+    profiles: {
+        type: OptionType.COMPONENT,
+        component: () => <ProfilesPanel />,
+    },
+
+    /* --- accent --- */
+    accentPreset: {
+        type: OptionType.SELECT,
+        description: "Primary color used for buttons, links, selection, mentions and glow.",
+        options: [
+            { label: "Blue", value: "blue", default: true },
+            { label: "Red", value: "red" },
+            { label: "Purple", value: "purple" },
+            { label: "Green", value: "green" },
+            { label: "Pink", value: "pink" },
+            { label: "Orange", value: "orange" },
+            { label: "Custom", value: "custom" },
+        ],
+        onChange: () => applyVars(),
+    },
+    accent: color("accent", "Primary color", "Pick any color (switches the preset to Custom); presets fill it in for you."),
+    voice: color("voice", "Voice / online", "Voice Connected, online status, speaking ring."),
+    close: color("close", "Close button", "Window close dot."),
+    minimize: color("minimize", "Minimize button", "Window minimize dot."),
+    maximize: color("maximize", "Maximize button", "Window maximize dot."),
+
+    /* --- cards --- */
+    cardPreset: {
+        type: OptionType.SELECT,
+        description: "Panel colors. Custom unlocks your own fill (solid or gradient) and text color.",
+        options: [
+            { label: "Dark", value: "dark", default: true },
+            { label: "Gray", value: "gray" },
+            { label: "White", value: "white" },
+            { label: "Custom", value: "custom" },
+        ],
+        onChange: () => applyAll(),
+    },
+    cardFill: {
+        type: OptionType.SELECT,
+        description: "Custom card fill.",
+        options: [
+            { label: "Solid color", value: "solid", default: true },
+            { label: "Gradient", value: "gradient" },
+        ],
+        hidden: custom("cardPreset"),
+        onChange: () => applyAll(),
+    },
+    cardColor: color("cardColor", "Card color", "Panel color (gradient start).", custom("cardPreset")),
+    cardColor2: color("cardColor2", "Card gradient end", "Second color of the card gradient.", () => settings.store.cardPreset !== "custom" || settings.store.cardFill !== "gradient"),
+    cardAngle: {
+        type: OptionType.SLIDER,
+        description: "Card gradient angle (degrees).",
+        markers: [0, 45, 90, 135, 180, 225, 270, 315, 360],
+        default: 135,
+        stickToMarkers: false,
+        hidden: () => settings.store.cardPreset !== "custom" || settings.store.cardFill !== "gradient",
+        onChange: () => applyVars(),
+    },
+    textColor: color("textColor", "Text color", "Main text; muted shades are derived from it.", custom("cardPreset")),
+    cardShape: {
+        type: OptionType.SELECT,
+        description: "Corners of panels, popouts and buttons.",
+        options: [
+            { label: "Sharp", value: "sharp" },
+            { label: "Soft", value: "soft" },
+            { label: "Curved", value: "curved", default: true },
+            { label: "Round", value: "round" },
+        ],
+        onChange: () => applyVars(),
+    },
+    cardStyle: {
+        type: OptionType.SELECT,
+        description: "Panel material. Glass only affects the big panels; buttons, menus and popups stay solid.",
+        options: [
+            { label: "Solid", value: "solid", default: true },
+            { label: "Glass", value: "glass" },
+        ],
+        onChange: () => applyAll(),
+    },
+    glassOpacity: {
+        type: OptionType.SLIDER,
+        description: "Glass opacity (%).",
+        markers: [20, 35, 50, 65, 80, 95],
+        default: 60,
+        stickToMarkers: false,
+        hidden: () => settings.store.cardStyle !== "glass",
+        onChange: () => applyVars(),
+    },
+    glassBlur: {
+        type: OptionType.BOOLEAN,
+        description: "Blur behind glass panels. While blur is on the background animation pauses, because re-blurring a moving background every frame is what makes Discord lag.",
+        default: true,
+        hidden: () => settings.store.cardStyle !== "glass",
+        onChange: () => applyAttrs(),
+    },
+
+    /* --- background --- */
+    background: {
+        type: OptionType.SELECT,
+        description: "Background behind the panels.",
+        options: [
+            { label: "Animated gradient", value: "animated", default: true },
+            { label: "Static gradient", value: "static" },
+            { label: "Solid color", value: "solid" },
+            { label: "Image / GIF / Video", value: "media" },
+        ],
+        onChange: () => applyAttrs(),
+    },
+    bgMediaSource: {
+        type: OptionType.SELECT,
+        description: "⚠ Image / GIF / video backgrounds cost performance: GIFs and videos keep the GPU busy all the time, more so with Glass blur. Use Static or Solid on weak PCs.",
+        options: [
+            { label: "URL", value: "url", default: true },
+            { label: "File", value: "file" },
+        ],
+        hidden: () => settings.store.background !== "media",
+    },
+    bgMediaUrl: {
+        type: OptionType.STRING,
+        description: "Direct link to an image, GIF or video (https). The site must be allowed by Vencord (Discord CDN, imgur, GitHub, Tenor are). If it can't load you get a message and the gradient stays.",
+        default: "",
+        hidden: () => settings.store.background !== "media" || settings.store.bgMediaSource !== "url",
+        isValid: (v: string) => v === "" || URL_RE.test(v) || "Must be a plain https:// link",
+    },
+    bgMediaFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.background !== "media" || settings.store.bgMediaSource !== "file",
+        component: () => <FileRow title="Background file" note="PNG, JPG, GIF, WEBP, MP4 or WEBM up to 100 MB. Stored only on this PC." accept={MEDIA_TYPES.join(",")} onFile={onMediaFile} />,
+    },
+    bgMediaDim: {
+        type: OptionType.SLIDER,
+        description: "Darken the background image / video (%), keeps text readable.",
+        markers: [0, 20, 40, 60, 80],
+        default: 30,
+        stickToMarkers: false,
+        hidden: () => settings.store.background !== "media",
+    },
+    bgBase: color("bgBase", "Background base", "Base color (the whole background when Solid)."),
+    bgColor1: color("bgColor1", "Gradient color 1", "First glow of the background gradient.", () => settings.store.background === "solid"),
+    bgColor2: color("bgColor2", "Gradient color 2", "Second glow of the background gradient.", () => settings.store.background === "solid"),
+
+    /* --- layout --- */
+    serverList: {
+        type: OptionType.SELECT,
+        description: "Server list position.",
+        options: [
+            { label: "Left (Discord default)", value: "left", default: true },
+            { label: "Top (horizontal)", value: "top" },
+            { label: "Bottom (horizontal)", value: "bottom" },
+            { label: "Right (vertical)", value: "right" },
+        ],
+        onChange: () => applyAttrs(),
+    },
+    channelsSide: {
+        type: OptionType.SELECT,
+        description: "Channel / DM list side.",
+        options: [
+            { label: "Left", value: "left", default: true },
+            { label: "Right", value: "right" },
+        ],
+        onChange: () => applyAttrs(),
+    },
+    membersSide: {
+        type: OptionType.SELECT,
+        description: "Member list / profile panel side (next to the chat).",
+        options: [
+            { label: "Right", value: "right", default: true },
+            { label: "Left", value: "left" },
+        ],
+        onChange: () => applyAttrs(),
+    },
+    roleCount: {
+        type: OptionType.SELECT,
+        description: "Member list role headers: how the member count is shown.",
+        options: [
+            { label: "Role (1)", value: "paren", default: true },
+            { label: "Role · 1", value: "dot" },
+            { label: "Role [1]", value: "bracket" },
+            { label: "Role 1", value: "space" },
+            { label: "Role — 1 (Discord default)", value: "dash" },
+            { label: "Role (no count)", value: "hidden" },
+            { label: "Custom", value: "custom" },
+        ],
+    },
+    roleCountCustom: {
+        type: OptionType.STRING,
+        description: "Custom role count. %users% is replaced by the number of members; without %users% nothing is shown. Example: • %users% online",
+        default: "(%users%)",
+        hidden: () => settings.store.roleCount !== "custom",
+    },
+    font: {
+        type: OptionType.SELECT,
+        description: "Font for the whole app.",
+        options: [
+            { label: "Discord (gg sans)", value: "discord" },
+            { label: "Terono (Figtree)", value: "terono", default: true },
+            { label: "Inter", value: "inter" },
+            { label: "Roboto", value: "roboto" },
+            { label: "Poppins", value: "poppins" },
+            { label: "Montserrat", value: "montserrat" },
+            { label: "Nunito", value: "nunito" },
+            { label: "Outfit", value: "outfit" },
+            { label: "Manrope", value: "manrope" },
+            { label: "DM Sans", value: "dmsans" },
+            { label: "Plus Jakarta Sans", value: "jakarta" },
+            { label: "Lexend", value: "lexend" },
+            { label: "Rubik", value: "rubik" },
+            { label: "Quicksand", value: "quicksand" },
+            { label: "Space Grotesk", value: "spacegrotesk" },
+            { label: "Sora", value: "sora" },
+            { label: "Urbanist", value: "urbanist" },
+            { label: "Work Sans", value: "worksans" },
+            { label: "IBM Plex Sans", value: "plex" },
+            { label: "Ubuntu", value: "ubuntu" },
+            { label: "Comfortaa", value: "comfortaa" },
+            { label: "JetBrains Mono", value: "jetbrains" },
+            { label: "Custom (upload)", value: "custom" },
+        ],
+    },
+    fontFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.font !== "custom",
+        component: () => <FileRow title="Custom font" note="TTF, OTF, WOFF or WOFF2 up to 10 MB. Stored only on this PC." accept=".ttf,.otf,.woff,.woff2" onFile={onFontFile} />,
+    },
+    logoSource: {
+        type: OptionType.SELECT,
+        description: "Home logo source (shown in its original colors).",
+        options: [
+            { label: "URL", value: "url", default: true },
+            { label: "File", value: "file" },
+        ],
+        onChange: () => applyLogo(),
+    },
+    logoUrl: {
+        type: OptionType.STRING,
+        description: "Home logo URL (https). Leave empty for the built-in Terono logo. The site must be allowed by Vencord (Discord CDN, imgur, GitHub are).",
+        default: "",
+        hidden: () => settings.store.logoSource !== "url",
+        isValid: (v: string) => v === "" || URL_RE.test(v) || "Must be a plain https:// link",
+        onChange: () => applyLogo(),
+    },
+    logoFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.logoSource !== "file",
+        component: () => <LogoUpload />,
+    },
+    logoSize: {
+        type: OptionType.SLIDER,
+        description: "Home logo size (% of the button).",
+        markers: [40, 50, 60, 70, 80, 90, 100],
+        default: 72,
+        stickToMarkers: false,
+        onChange: () => applyVars(),
+    },
+    quickIcon: {
+        type: OptionType.BOOLEAN,
+        description: "Show the Terona icon next to the back/forward arrows (opens these settings).",
+        default: true,
+        onChange: () => applyAttrs(),
+    },
+
+    /* --- server channel header --- */
+    headerName: {
+        type: OptionType.SELECT,
+        description: "Servers: channel name position.",
+        options: [
+            { label: "Left", value: "left", default: true },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right" },
+            { label: "Hidden", value: "hidden" },
+        ],
+        onChange: () => applyHeader(),
+    },
+    headerHash: { type: OptionType.BOOLEAN, description: "Servers: show the # / channel icon next to the name.", default: true, onChange: () => applyHeader() },
+    headerFollow: { type: OptionType.BOOLEAN, description: "Servers: show the Follow button in announcement channels.", default: false, onChange: () => applyHeader() },
+    headerButtons: {
+        type: OptionType.SELECT,
+        description: "Servers: header buttons position (pins, threads, notifications...).",
+        options: [
+            { label: "Left", value: "left", default: true },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right" },
+        ],
+        onChange: () => applyHeader(),
+    },
+    headerSearch: {
+        type: OptionType.SELECT,
+        description: "Servers: search bar position.",
+        options: [
+            { label: "Left", value: "left" },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right", default: true },
+            { label: "Hidden", value: "hidden" },
+        ],
+        onChange: () => applyHeader(),
+    },
+
+    /* --- DM header --- */
+    dmHeaderName: {
+        type: OptionType.SELECT,
+        description: "DMs: avatar + name position.",
+        options: [
+            { label: "Left", value: "left" },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right" },
+            { label: "Hidden", value: "hidden", default: true },
+        ],
+        onChange: () => applyHeader(),
+    },
+    dmHeaderButtons: {
+        type: OptionType.SELECT,
+        description: "DMs: header buttons position (call, pins, add friend...).",
+        options: [
+            { label: "Left", value: "left", default: true },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right" },
+        ],
+        onChange: () => applyHeader(),
+    },
+    dmHeaderSearch: {
+        type: OptionType.SELECT,
+        description: "DMs: search bar position.",
+        options: [
+            { label: "Left", value: "left" },
+            { label: "Middle", value: "middle" },
+            { label: "Right", value: "right", default: true },
+            { label: "Hidden", value: "hidden" },
+        ],
+        onChange: () => applyHeader(),
+    },
+
+    headerHiddenButtons: {
+        type: OptionType.STRING,
+        description: "Hide header buttons whose label contains any of these words (comma separated), e.g. Video, Pinned, Threads, Notification, Member List, User Profile, Inbox, Help.",
+        default: "Video, User Profile, Member List, Threads, Inbox, Help",
+        onChange: () => applyHeader(),
+    },
+
+    /* --- performance --- */
+    lite: {
+        type: OptionType.BOOLEAN,
+        description: "Performance mode: no background animation, blur, pulsing badges or hover animations. Best for weak PCs and laptops on battery.",
+        default: false,
+        onChange: () => applyAttrs(),
+    },
+
+    /* --- chat bar & activities --- */
+    chatTranslate: { type: OptionType.BOOLEAN, description: "Chat bar: Translate button.", default: true, onChange: () => applyChat() },
+    chatGif: { type: OptionType.BOOLEAN, description: "Chat bar: GIF button (picker opens on GIFs).", default: true, onChange: () => applyChat() },
+    chatEmoji: { type: OptionType.BOOLEAN, description: "Chat bar: Emoji button (picker opens on emojis).", default: false, onChange: () => applyChat() },
+    chatSticker: { type: OptionType.BOOLEAN, description: "Chat bar: Sticker button.", default: false, onChange: () => applyChat() },
+    chatGift: { type: OptionType.BOOLEAN, description: "Chat bar: Gift button.", default: false, onChange: () => applyChat() },
+    chatApps: { type: OptionType.BOOLEAN, description: "Chat bar: Apps button.", default: false, onChange: () => applyChat() },
+    chatOtherVencord: { type: OptionType.BOOLEAN, description: "Chat bar: other Vencord plugin buttons.", default: false, onChange: () => applyChat() },
+    showActivities: {
+        type: OptionType.BOOLEAN,
+        description: "Show “Start an Activity” buttons and activity tiles (voice panel, call controls, call grid). Applies instantly.",
+        default: false,
+        onChange: () => applyAttrs(),
+    },
+
+    /* --- menus --- */
+    hiddenMenuItems: {
+        type: OptionType.STRING,
+        description: "Hide these right-click items in EVERY menu (comma separated, exact label, case-insensitive).",
+        default: "",
+    },
+    hiddenServerMenu: {
+        type: OptionType.STRING,
+        description: "Hide these items in the server right-click menu.",
+        default: "Privacy Settings, View Permissions, Edit Per-server Profile",
+    },
+    hiddenUserMenu: {
+        type: OptionType.STRING,
+        description: "Hide these items in the user / DM right-click menu.",
+        default: "Start a Call, Add Note, Apps",
+    },
+
+    /* --- translate --- */
+    autoTranslate: {
+        type: OptionType.BOOLEAN,
+        description: "Auto-translate received messages to English (shown by the Translate plugin, keep it enabled). Privacy: message text is sent to Google Translate.",
+        default: false,
+    },
+    keepLanguages: {
+        type: OptionType.STRING,
+        description: "Language codes never auto-translated. Google often detects Slovenian slang as Slovak (sk) or Croatian (hr); add them if needed.",
+        default: "en, sl",
+    },
+
+    /* --- hub --- */
+    pluginHub: {
+        type: OptionType.COMPONENT,
+        component: () => <PluginHub />,
+    },
+});
+
+/* ================= apply (split so each change only touches what it needs) ================= */
+
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null };
+
+function sheet(name: keyof typeof sheets, css: string) {
+    let el = sheets[name];
+    if (!el) {
+        el = sheets[name] = document.createElement("style");
+        el.id = `terono-${name}`;
+        document.head.append(el);
+    }
+    if (el.textContent !== css) el.textContent = css;
+}
+
+const pick = (id: ColorKey) => {
+    const v = preview[id] ?? settings.store[id];
+    return HEX_RE.test(v) ? v : COLOR_DEFAULTS[id];
+};
+
+// html:root out-specifies the theme's :root defaults regardless of load order
+export function applyVars() {
+    const s = settings.store;
+    const customCard = s.cardPreset === "custom";
+    const preset = CARDS[s.cardPreset] ?? CARDS.dark;
+    const card = customCard ? pick("cardColor") : preset.card;
+    const [xs, sm, md, lg, xl] = RADII[s.cardShape] ?? RADII.curved;
+
+    sheet("vars", `html:root {
+    --dz-accent: ${preview.accent ?? (s.accentPreset === "custom" ? pick("accent") : ACCENTS[s.accentPreset] ?? ACCENTS.blue)};
+    --dz-voice: ${pick("voice")};
+    --dz-close: ${pick("close")};
+    --dz-minimize: ${pick("minimize")};
+    --dz-maximize: ${pick("maximize")};
+    --dz-card: ${card};
+    --dz-card-2: ${customCard && s.cardFill === "gradient" ? pick("cardColor2") : card};
+    --dz-card-angle: ${Number(s.cardAngle) || 0}deg;
+    --dz-text: ${customCard ? pick("textColor") : preset.text};
+    --dz-card-alpha: ${s.cardStyle === "glass" ? Number(s.glassOpacity) || 60 : 100}%;
+    --dz-float-alpha: ${s.cardStyle === "glass" ? Math.min(95, (Number(s.glassOpacity) || 60) + 20) : 100}%;
+    --dz-bg-dim: ${(Number(s.bgMediaDim) || 0) / 100};
+    --dz-bg-base: ${pick("bgBase")};
+    --dz-bg-1: ${pick("bgColor1")};
+    --dz-bg-2: ${pick("bgColor2")};
+    --radius-xs: ${xs}px;
+    --radius-sm: ${sm}px;
+    --radius-md: ${md}px;
+    --radius-lg: ${lg}px;
+    --radius-xl: ${xl}px;
+    --dz-logo-size: ${Number(s.logoSize) || 72}%;
+}`);
+}
+
+export function applyLogo() {
+    const s = settings.store;
+    const url = s.logoSource === "file" && uploadedLogo ? uploadedLogo
+        : URL_RE.test(s.logoUrl) ? s.logoUrl : DEFAULT_LOGO;
+    sheet("logo", `html:root { --dz-home-logo: url("${url}"); --dz-quick-icon: url("${TERONO_LOGO}"); }`);
+}
+
+const CHAT_BUTTONS: [string, string][] = [
+    ["chatTranslate", ':has([aria-label="Open Translate Modal"])'],
+    ["chatGif", ':has([aria-label="Open GIF picker"])'],
+    ["chatEmoji", ":has(.emojiButton__74017)"],
+    ["chatSticker", ":has(.stickerButton__74017)"],
+    ["chatGift", ':has([aria-label="Send a gift"])'],
+    ["chatApps", ".app-launcher-entrypoint"],
+    ["chatOtherVencord", '.vc-chatbar-button:not(:has([aria-label="Open Translate Modal"]))'],
+];
+
+export function applyChat() {
+    const s = settings.store as Record<string, unknown>;
+    const visible = CHAT_BUTTONS.filter(([key]) => s[key]).map(([, sel]) => sel);
+    const target = visible.length ? `.buttons__74017 > :not(${visible.join(", ")})` : ".buttons__74017 > *";
+    sheet("chat", `html[data-dz-plugin] ${target} { display: none !important; }`);
+}
+
+const ZONE: Record<string, number> = { left: 1, middle: 3, right: 5 };
+const cssString = (v: string) => v.replace(/["\\\n\r]/g, "");
+
+export function applyHeader() {
+    const s = settings.store;
+    const words = s.headerHiddenButtons.split(",").map(w => cssString(w.trim())).filter(Boolean).slice(0, 30);
+    const serverHide = [
+        s.headerName === "hidden" && ".title_f75fb0 .children__9293f",
+        s.headerSearch === "hidden" && '.title_f75fb0 .toolbar__9293f > [class*="search_"]',
+        !s.headerHash && ".title_f75fb0 .children__9293f > .iconWrapper__9293f",
+        !s.headerFollow && ".title_f75fb0 .followButton_f75fb0",
+    ].filter(Boolean).map(sel => `html:not([data-dz-dm]) ${sel}`);
+    const dmHide = [
+        s.dmHeaderName === "hidden" && ".title_f75fb0 .children__9293f",
+        s.dmHeaderSearch === "hidden" && '.title_f75fb0 .toolbar__9293f > [class*="search_"]',
+    ].filter(Boolean).map(sel => `html[data-dz-dm] ${sel}`);
+    const hide = [...words.map(w => `.title_f75fb0 .toolbar__9293f > [aria-label*="${w}" i]`), ...serverHide, ...dmHide];
+
+    sheet("header", `html:root {
+    --dz-h-name: ${ZONE[s.headerName] ?? 1};
+    --dz-h-buttons: ${ZONE[s.headerButtons] ?? 1};
+    --dz-h-search: ${ZONE[s.headerSearch] ?? 5};
+}
+html[data-dz-dm]:root {
+    --dz-h-name: ${ZONE[s.dmHeaderName] ?? 1};
+    --dz-h-buttons: ${ZONE[s.dmHeaderButtons] ?? 1};
+    --dz-h-search: ${ZONE[s.dmHeaderSearch] ?? 5};
+}${hide.length ? `\n${hide.join(",\n")} { display: none !important; }` : ""}`);
+
+    requestAnimationFrame(attachHeader);
+}
+
+// attributes, not classes: Discord rewrites <html class> on theme changes
+export function applyAttrs() {
+    const s = settings.store;
+    const d = document.documentElement.dataset;
+    const flag = (key: string, on: boolean) => { if (on) d[key] = ""; else delete d[key]; };
+
+    d.dzPlugin = "";
+    d.dzBg = s.background;
+    d.dzCardFill = s.cardPreset === "custom" ? s.cardFill : "solid";
+    d.dzGuilds = s.serverList;
+    d.dzChannels = s.channelsSide;
+    d.dzMembers = s.membersSide;
+    flag("dzGlass", s.cardStyle === "glass");
+    flag("dzGlassBlur", s.cardStyle === "glass" && s.glassBlur);
+    flag("dzActivities", s.showActivities);
+    flag("dzLite", s.lite);
+    flag("dzQuick", s.quickIcon);
+
+    // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
+    sheet("hsl", s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
+}
+
+/* ---------- fonts ---------- */
+
+let fontLink: HTMLLinkElement | null = null;
+
+export function applyFont() {
+    const key = settings.store.font;
+    const family = key === "custom" ? (customFont ? "Terono Custom" : "") : FONTS[key] ?? "Figtree";
+
+    const needsLink = key !== "custom" && key !== "discord" && key !== "terono" && family;
+    if (needsLink) {
+        const href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family)}:wght@400;500;600;700;800&display=swap`;
+        fontLink ??= document.head.appendChild(document.createElement("link"));
+        fontLink.rel = "stylesheet";
+        if (fontLink.href !== href) fontLink.href = href;
+    } else {
+        fontLink?.remove();
+        fontLink = null;
+    }
+
+    sheet("font", family ? `html body { --font: "${family}"; }` : 'html body { --font: "gg sans"; }');
+}
+
+/* ---------- background image / gif / video ---------- */
+
+let videoEl: HTMLVideoElement | null = null;
+let bgObserver: MutationObserver | null = null;
+const VIDEO_RE = /\.(mp4|webm|mov)(\?|#|$)/i;
+const probed = new Map<string, "image" | "video" | "fail" | "pending">();
+
+function probeUrl(url: string) {
+    const known = probed.get(url);
+    if (known) return known;
+    probed.set(url, "pending");
+
+    const done = (kind: "image" | "video" | "fail") => {
+        probed.set(url, kind);
+        if (kind === "fail") showToast("Background couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
+        applyMedia();
+    };
+    const tryVideo = () => {
+        const v = document.createElement("video");
+        v.muted = true;
+        v.preload = "metadata";
+        v.onloadedmetadata = () => done("video");
+        v.onerror = () => done("fail");
+        v.src = url;
+    };
+    if (VIDEO_RE.test(url)) return tryVideo(), "pending";
+
+    const img = new Image();
+    img.onload = () => done("image");
+    img.onerror = tryVideo;
+    img.src = url;
+    return "pending";
+}
+
+function attachVideo() {
+    const bg = document.querySelector("#app-mount .bg__960e4");
+    if (bg && videoEl && videoEl.parentElement !== bg) bg.prepend(videoEl);
+}
+
+function onVisibility() {
+    if (!videoEl) return;
+    if (document.hidden) videoEl.pause();
+    else videoEl.play().catch(() => { });
+}
+
+export function applyMedia() {
+    const s = settings.store;
+    const active = s.background === "media";
+    const fromFile = s.bgMediaSource === "file";
+
+    if (mediaUrl && (!active || !fromFile)) {
+        URL.revokeObjectURL(mediaUrl);
+        mediaUrl = null;
+    }
+    let src = "";
+    let isVideo = false;
+    if (active && fromFile && mediaBlob) {
+        mediaUrl ??= URL.createObjectURL(mediaBlob);
+        src = mediaUrl;
+        isVideo = mediaBlob.type.startsWith("video/");
+    } else if (active && !fromFile && URL_RE.test(s.bgMediaUrl)) {
+        const kind = probeUrl(s.bgMediaUrl);
+        if (kind === "image" || kind === "video") {
+            src = s.bgMediaUrl;
+            isVideo = kind === "video";
+        }
+    }
+
+    // nothing usable (no file yet, loading, or failed): show the static gradient instead of a blank background
+    const d = document.documentElement.dataset;
+    if (active) d.dzBg = src ? "media" : "static";
+
+    if (isVideo && src) {
+        if (!videoEl) {
+            videoEl = document.createElement("video");
+            videoEl.className = "dz-bg-video";
+            videoEl.onerror = () => {
+                if (!videoEl?.src.startsWith("blob:")) probed.set(videoEl!.src, "fail");
+                showToast("Background video couldn't be played.", Toasts.Type.FAILURE);
+            };
+            Object.assign(videoEl, { muted: true, loop: true, autoplay: true, playsInline: true });
+            document.addEventListener("visibilitychange", onVisibility);
+            bgObserver = new MutationObserver(attachVideo);
+            const layer = document.querySelector("#app-mount .bg__960e4")?.parentElement;
+            if (layer) bgObserver.observe(layer, { childList: true });
+        }
+        if (videoEl.src !== src) videoEl.src = src;
+        attachVideo();
+        videoEl.play().catch(() => { });
+        sheet("media", "");
+    } else {
+        videoEl?.remove();
+        videoEl = null;
+        bgObserver?.disconnect();
+        bgObserver = null;
+        document.removeEventListener("visibilitychange", onVisibility);
+        sheet("media", src ? `html:root { --dz-bg-media: url("${src}"); }` : "");
+    }
+}
+
+/* ---------- popups Discord paints with its own "darker"/"midnight" palette ----------
+   Neither Midnight nor this theme target those classes, so such popups (e.g. the screenshare
+   picker) fell back to stock Discord colors. Make their custom properties inherit ours instead. */
+
+export function applyDarkerPalette() {
+    const props = new Set<string>();
+    for (const sheetObj of document.styleSheets) {
+        let rules: CSSRuleList;
+        try { rules = sheetObj.cssRules; } catch { continue; }
+        for (const rule of rules) {
+            if (!(rule instanceof CSSStyleRule) || !/^\.theme-(darker|midnight)$/.test(rule.selectorText)) continue;
+            for (const name of rule.style) if (name.startsWith("--")) props.add(name);
+        }
+    }
+    const decl = [...props].map(p => `${p}: inherit;`).join("");
+    sheet("darker", decl ? `html :is(.theme-darker, .theme-midnight):not(html) { ${decl} }` : "");
+}
+
+export function applyAll() {
+    applyAttrs();
+    applyVars();
+    applyLogo();
+    applyChat();
+    applyHeader();
+    applyFont();
+    applyMedia();
+}
+
+export function removeAll() {
+    videoEl?.remove();
+    videoEl = null;
+    bgObserver?.disconnect();
+    bgObserver = null;
+    document.removeEventListener("visibilitychange", onVisibility);
+    fontLink?.remove();
+    fontLink = null;
+    if (mediaUrl) URL.revokeObjectURL(mediaUrl);
+    mediaUrl = null;
+    for (const k of Object.keys(sheets) as (keyof typeof sheets)[]) {
+        sheets[k]?.remove();
+        sheets[k] = null;
+    }
+    const d = document.documentElement.dataset;
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm"]) delete d[k];
+}

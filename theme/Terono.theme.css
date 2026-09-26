@@ -1,0 +1,897 @@
+/**
+ * @name Terono
+ * @author Terona Studios
+ * @source https://github.com/Terona-Studios/Terono
+ * @website https://github.com/Terona-Studios/Terono
+ * @version 11.0.0
+ * @description Fast, clean theme on Midnight by Terona Studios. Works alone; the Terono plugin adds colors, cards, background modes, header layout, horizontal server list, logo upload and profiles.
+ */
+
+@import url("https://refact0r.github.io/midnight-discord/build/midnight.css");
+
+/* ================= MIDNIGHT CONFIG ================= */
+
+body {
+    --font: "figtree";
+    --code-font: "";
+
+    --gap: 8px;
+    --divider-thickness: 2px;
+    --border-thickness: 1px;
+
+    /* off = no margin-left hover animation (it re-layouts lists every frame) */
+    --animations: off;
+    --border-hover-transition: 80ms ease;
+
+    /* window controls stay in Discord's real top bar = native window dragging */
+    --top-bar-height: 30px;
+    --top-bar-button-position: hide;
+    --top-bar-title-position: hide;
+    --subtle-top-bar-title: on;
+    --custom-window-controls: on;
+    --window-control-size: 13px;
+
+    /* home logo is drawn by this theme (original colors) */
+    --custom-dms-icon: hide;
+    --custom-dms-background: off;
+
+    --background-image: off;
+    --transparency-tweaks: off;
+    --remove-bg-layer: off;
+    --panel-blur: off;
+    --custom-chatbar: off;
+    --small-user-panel: on;
+}
+
+/* guild list not inside the channel column: user panel spans the whole column */
+html:is([data-dz-guilds="top"], [data-dz-guilds="bottom"], [data-dz-guilds="right"], [data-dz-guilds="left"][data-dz-channels="right"]) body {
+    --small-user-panel: off;
+}
+
+#app-mount {
+    --custom-channel-header-height: 40px;
+}
+
+:root {
+    --HSL-server-direction: column;
+    --HSL-server-alignment: flex-start;
+
+    --dz-member-list-width: var(--custom-member-list-width, 264px);
+
+    /* ================= USER KNOBS (the plugin overrides these) ================= */
+
+    --dz-accent: #429cff;
+    --dz-voice: #35b889;
+    --dz-close: #d94a5d;
+    --dz-minimize: #d29b2e;
+    --dz-maximize: #35b889;
+    --dz-card: #070708;
+    --dz-card-2: var(--dz-card);
+    --dz-card-angle: 135deg;
+    --dz-text: #f1f2f4;
+    --dz-card-alpha: 100%;
+    --dz-bg-base: #000000;
+    --dz-bg-1: #429cff;
+    --dz-bg-2: #0b2a55;
+    --dz-home-logo: url("https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/assets/terono.png");
+    --dz-quick-icon: url("https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/assets/terono.png");
+    --dz-logo-size: 72%;
+    --dz-h-name: 1;
+    --dz-h-buttons: 1;
+    --dz-h-search: 5;
+
+    --radius-xs: 6px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+
+    /* ================= DERIVED PALETTE ================= */
+
+    --text-0: #ffffff;
+    --text-1: var(--dz-text);
+    --text-2: color-mix(in srgb, var(--dz-text), var(--dz-card) 10%);
+    --text-3: color-mix(in srgb, var(--dz-text), var(--dz-card) 22%);
+    --text-4: color-mix(in srgb, var(--dz-text), var(--dz-card) 38%);
+    --text-5: color-mix(in srgb, var(--dz-text), var(--dz-card) 52%);
+
+    /* bg-4 = the panel itself. bg-1..3 are tints laid over it, so inputs, buttons and rows
+       follow gradients and glass instead of being flat opaque blocks. */
+    --bg-4: color-mix(in srgb, var(--dz-card) var(--dz-card-alpha), transparent);
+    --bg-3: color-mix(in srgb, var(--dz-text) 5%, transparent);
+    --bg-2: color-mix(in srgb, var(--dz-text) 8%, transparent);
+    --bg-1: color-mix(in srgb, var(--dz-text) 12%, transparent);
+
+    /* solid versions for things that float above other content */
+    --dz-solid-4: var(--dz-card);
+    --dz-solid-3: color-mix(in srgb, var(--dz-card), var(--dz-text) 5%);
+
+    --hover: color-mix(in srgb, var(--dz-text) 6%, transparent);
+    --active: color-mix(in srgb, var(--dz-accent) 14%, transparent);
+    --active-2: color-mix(in srgb, var(--dz-accent) 20%, transparent);
+    --message-hover: color-mix(in srgb, var(--dz-text) 3%, transparent);
+
+    --blue-1: color-mix(in oklab, var(--dz-accent), white 50%);
+    --blue-2: color-mix(in oklab, var(--dz-accent), white 25%);
+    --blue-3: var(--dz-accent);
+    --blue-4: color-mix(in oklab, var(--dz-accent), black 12%);
+    --blue-5: color-mix(in oklab, var(--dz-accent), black 25%);
+
+    --accent-1: var(--blue-1);
+    --accent-2: var(--blue-2);
+    --accent-3: var(--blue-3);
+    --accent-4: var(--blue-4);
+    --accent-5: var(--blue-5);
+    --accent-new: var(--blue-3);
+
+    --green-1: color-mix(in oklab, var(--dz-voice), white 40%);
+    --green-2: color-mix(in oklab, var(--dz-voice), white 15%);
+    --green-3: var(--dz-voice);
+    --green-4: color-mix(in oklab, var(--dz-voice), black 12%);
+    --green-5: color-mix(in oklab, var(--dz-voice), black 25%);
+
+    --online: var(--dz-voice);
+    --dnd: #d94a5d;
+    --idle: #d29b2e;
+    --streaming: #8d73dc;
+    --offline: #60636a;
+
+    --border-light: color-mix(in srgb, var(--dz-text) 4%, transparent);
+    --border: color-mix(in srgb, var(--dz-text) 7%, transparent);
+    --border-hover: color-mix(in srgb, var(--dz-text) 12%, transparent);
+    --button-border: color-mix(in srgb, var(--dz-text) 7%, transparent);
+
+    --mention: linear-gradient(90deg, color-mix(in srgb, var(--dz-accent) 12%, transparent), color-mix(in srgb, var(--dz-accent) 3%, transparent) 55%, transparent);
+    --mention-hover: linear-gradient(90deg, color-mix(in srgb, var(--dz-accent) 16%, transparent), color-mix(in srgb, var(--dz-accent) 4%, transparent) 55%, transparent);
+    --reply: linear-gradient(90deg, color-mix(in srgb, var(--dz-text) 6%, transparent), transparent 60%);
+    --reply-hover: linear-gradient(90deg, color-mix(in srgb, var(--dz-text) 8%, transparent), transparent 60%);
+
+    --red-1: #f58b96;
+    --red-2: #e25d6a;
+    --red-3: #cf4957;
+    --red-4: #b93b48;
+    --red-5: #9c303c;
+
+    --yellow-1: #eccd7c;
+    --yellow-2: #d7a63b;
+    --yellow-3: #bd8d2d;
+    --yellow-4: #9d7323;
+    --yellow-5: #7e5b1b;
+
+    --purple-1: #b5a5ed;
+    --purple-2: #9986dc;
+    --purple-3: #816dc6;
+    --purple-4: #6c58aa;
+    --purple-5: #58468d;
+}
+
+/* Surfaces that float over other content must stay solid (menus, popouts, dropdowns, modals, profile popups).
+   Same elements Midnight themes, one step more specific so it wins. */
+html:root :is(body, .theme-dark, .theme-light) {
+    --background-surface-high: var(--dz-solid-4);
+    --background-surface-higher: var(--dz-solid-4);
+    --background-surface-highest: var(--dz-solid-3);
+    /* Midnight maps --white to its dark text-0; Discord uses --white for text/icons over video,
+       stream settings, Nitro badges and the connection-icon circles, which all turned black */
+    --white: #ffffff;
+    --white-500: #ffffff;
+    --text-overlay-light: #ffffff;
+    --control-overlay-primary-background-default: var(--dz-accent);
+    --control-overlay-primary-background-hover: var(--accent-4);
+    --control-overlay-primary-background-active: var(--accent-5);
+    --control-overlay-primary-text-default: #ffffff;
+    --control-overlay-primary-text-hover: #ffffff;
+    --control-overlay-primary-text-active: #ffffff;
+    --control-overlay-primary-icon-default: #ffffff;
+    --control-overlay-primary-icon-hover: #ffffff;
+    --control-overlay-primary-icon-active: #ffffff;
+    --control-critical-primary-icon-default: #ffffff;
+    --control-critical-primary-icon-hover: #ffffff;
+    --control-critical-primary-icon-active: #ffffff;
+    --control-critical-primary-text-default: #ffffff;
+    --control-critical-primary-text-hover: #ffffff;
+    --control-critical-primary-text-active: #ffffff;
+    --control-connect-icon-default: #ffffff;
+    --control-connect-icon-hover: #ffffff;
+    --control-connect-icon-active: #ffffff;
+    --control-connect-text-default: #ffffff;
+    --control-connect-text-hover: #ffffff;
+    --control-connect-text-active: #ffffff;
+    --bg-surface-overlay-tmp: var(--dz-solid-3);
+    --bg-surface-raised: var(--dz-solid-3);
+    --modal-background: var(--dz-solid-4);
+    --modal-footer-background: var(--dz-solid-4);
+    --user-profile-overlay-background: var(--dz-solid-3);
+    --user-profile-note-background-focus: var(--dz-solid-4);
+}
+
+/* Midnight gives popup modals the panel background; keep them solid */
+.container__8a031 {
+    background-color: var(--dz-solid-4) !important;
+}
+
+/* ================= POPOUTS: pins, inbox, menus, search suggestions look like cards ================= */
+
+:is(.messagesPopoutWrap__432f4, .menu_c1e9c4, .container__55c99, .autocomplete__6b0e0, .autocomplete__13533) {
+    background-color: var(--dz-solid-4) !important;
+    background-image: linear-gradient(var(--dz-card-angle), var(--dz-card), var(--dz-card-2)) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 35%) !important;
+}
+
+/* glass mode: popouts match the glass panels but stay readable (mostly opaque + blur; small, so blur is cheap) */
+html[data-dz-glass] :is(.messagesPopoutWrap__432f4, .menu_c1e9c4, .container__55c99, .autocomplete__6b0e0, .autocomplete__13533, .container__8a031, .outer_c0bea0.user-profile-popout) {
+    background-color: color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent) !important;
+    background-image: linear-gradient(var(--dz-card-angle),
+        color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent),
+        color-mix(in srgb, var(--dz-card-2) var(--dz-float-alpha, 82%), transparent)) !important;
+    backdrop-filter: blur(24px) saturate(1.2);
+}
+
+.autocomplete__13533 :is(.categoryHeader_d1405b) {
+    background: transparent !important;
+}
+
+.messagesPopoutWrap__432f4 :is(.header__432f4, .buttonContainer__432f4) {
+    background: transparent !important;
+}
+
+.messagesPopoutWrap__432f4 .messageGroupWrapper__432f4 {
+    background: var(--bg-3) !important;
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.menu_c1e9c4 .item_c1e9c4 {
+    border-radius: var(--radius-xs) !important;
+}
+
+/* ================= PROFILE CARDS: always the theme's card, never the user's own profile theme ================= */
+
+.outer_c0bea0,
+.outer_c0bea0.custom-theme-background {
+    --profile-gradient-primary-color: var(--dz-card) !important;
+    --profile-gradient-secondary-color: var(--dz-card-2) !important;
+    --profile-gradient-overlay-color: transparent !important;
+    --profile-gradient-button-color: var(--dz-accent) !important;
+    --profile-gradient-note-background-color: var(--bg-3) !important;
+    --profile-gradient-role-pill-background-color: var(--bg-2) !important;
+    --profile-gradient-role-pill-border-color: var(--border) !important;
+    --profile-gradient-message-input-border-color: var(--border) !important;
+    --profile-body-background-color: transparent !important;
+    --profile-body-background-hover: var(--hover) !important;
+    --profile-body-divider-color: var(--border) !important;
+    --profile-body-border-color: var(--border) !important;
+    --profile-avatar-border-color: var(--dz-card) !important;
+    background: linear-gradient(var(--dz-card-angle), var(--dz-card), var(--dz-card-2)) !important;
+}
+
+/* a light profile theme would otherwise switch its text to dark-on-light */
+.custom-user-profile-theme {
+    --text-default: var(--text-3) !important;
+    --text-normal: var(--text-3) !important;
+    --text-strong: var(--text-1) !important;
+    --text-muted: var(--text-5) !important;
+    --header-primary: var(--text-1) !important;
+    --header-secondary: var(--text-3) !important;
+    --interactive-normal: var(--text-4) !important;
+    --interactive-hover: var(--text-2) !important;
+    --text-link: var(--accent-1) !important;
+    color: var(--text-3);
+}
+
+/* connection logos: no circle, just the logo (the plugin picks dark-theme logos / domain favicons) */
+.platformIconContainer__9bfb9 {
+    background: none !important;
+}
+
+/* ================= BACKGROUND (behind all cards) ================= */
+
+#app-mount .bg__960e4 {
+    background: var(--dz-bg-base) !important;
+    overflow: hidden;
+    contain: strict;
+}
+
+/* only transform animates (GPU compositing, no repaints); small overscan keeps the layer cheap */
+#app-mount .bg__960e4::before {
+    content: "";
+    position: absolute;
+    inset: -12%;
+    background:
+        radial-gradient(circle at 25% 30%, color-mix(in srgb, var(--dz-bg-1) 32%, transparent) 0, transparent 40%),
+        radial-gradient(circle at 75% 70%, color-mix(in srgb, var(--dz-bg-2) 90%, transparent) 0, transparent 45%),
+        radial-gradient(circle at 65% 15%, color-mix(in srgb, var(--dz-bg-1) 16%, transparent) 0, transparent 32%);
+    animation: dz-drift 30s ease-in-out infinite alternate;
+    will-change: transform;
+    pointer-events: none;
+}
+
+/* re-blurring a moving background under every glass panel each frame is the main lag source: pause it */
+html:is([data-dz-bg="static"], [data-dz-glass-blur], [data-dz-lite]) #app-mount .bg__960e4::before {
+    animation: none;
+    will-change: auto;
+}
+
+html[data-dz-bg="solid"] #app-mount .bg__960e4::before {
+    display: none;
+}
+
+/* image / GIF (CSS) or video (element added by the plugin), with a dim layer on top */
+html[data-dz-bg="media"] #app-mount .bg__960e4::before {
+    inset: 0;
+    background: var(--dz-bg-media, none) center / cover no-repeat;
+    animation: none;
+    will-change: auto;
+}
+
+html[data-dz-bg="media"] #app-mount .bg__960e4::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / var(--dz-bg-dim, 0.3));
+    pointer-events: none;
+}
+
+.dz-bg-video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+@keyframes dz-drift {
+    from { transform: translate3d(-5%, -4%, 0); }
+    to { transform: translate3d(5%, 4%, 0); }
+}
+
+/* ================= CARDS: gradient fill + glass (big panels only) ================= */
+
+/* fixed attachment = one continuous gradient across every card instead of restarting per card */
+html[data-dz-card-fill="gradient"] :is(.guilds__5e434, .sidebarList__5e434, .panels__5e434, .chat_f75fb0 > .subtitleContainer_f75fb0, .chatContent_f75fb0,
+    .container_c8ffbb, .container__133bf > .container__9293f, .peopleColumn__133bf, .nowPlayingColumn__133bf, .searchResultsWrap_a98f3b,
+    .container_f369db, .chat_fb64c9, .callContainer_cb9592, .container_f391e3 > .content_f75fb0, .shop__6db1d,
+    .content_f75fb0 > aside > .outer_c0bea0:not(.custom-theme-background)) {
+    background-image: linear-gradient(var(--dz-card-angle),
+        color-mix(in srgb, var(--dz-card) var(--dz-card-alpha), transparent),
+        color-mix(in srgb, var(--dz-card-2) var(--dz-card-alpha), transparent)) !important;
+    background-attachment: fixed !important;
+}
+
+html[data-dz-glass-blur]:not([data-dz-lite]) :is(.guilds__5e434, .sidebarList__5e434, .panels__5e434, .chat_f75fb0 > .subtitleContainer_f75fb0, .chatContent_f75fb0,
+    .container_c8ffbb, .content_f75fb0 > .membersWrap_c8ffbb, .container__133bf > .container__9293f, .peopleColumn__133bf,
+    .nowPlayingColumn__133bf, .searchResultsWrap_a98f3b, .container_f369db, .chat_fb64c9, .callContainer_cb9592,
+    .content_f75fb0 > aside > .outer_c0bea0, .container_f391e3 > .content_f75fb0, .shop__6db1d) {
+    backdrop-filter: blur(14px);
+}
+
+/* inside gradient cards, anything painted with the plain panel color becomes a tint so the gradient shows through */
+html[data-dz-card-fill="gradient"]:root {
+    --bg-4: color-mix(in srgb, var(--dz-text) 3%, transparent);
+}
+
+/* embeds, attachments and cards inside panels use "surface" colors too: tint them so they follow gradient/glass.
+   Real popouts render in layers outside these panels and stay solid; the in-chat popups are pinned solid below. */
+:is(.chatContent_f75fb0, .sidebarList__5e434, .container_c8ffbb, .peopleColumn__133bf, .nowPlayingColumn__133bf, .searchResultsWrap_a98f3b, .container_f369db) {
+    --background-surface-high: var(--bg-3);
+    --background-surface-higher: var(--bg-3);
+    --background-surface-highest: var(--bg-2);
+}
+
+:is(.autocomplete__6b0e0, .contentWrapper__08434, .expressionPickerPositionLayer__74017) {
+    --background-surface-high: var(--dz-solid-3);
+    --background-surface-higher: var(--dz-solid-3);
+    --background-surface-highest: var(--dz-solid-3);
+}
+
+/* ================= SHAPES: everything follows the Card Shape setting =================
+   Discord hardcodes 4-10px on these; map them to the radius tokens the plugin sets. */
+
+:is(.channel__972a0, .interactive_f88cfd, .link__972a0, .interactive__972a0, .container_df39b2, .link__2ea32, .container__91a9d,
+    .search_c322aa, .searchBar_c322aa, .scrollableContainer__74017, .channelTextArea_f75fb0, .reaction__23977, .reactionBtn__23977,
+    .hoverButtonGroup__06ab4, .ping__06d62, .content__908e2, .bar__3b95d, .bgScale_b78547, .buttonSection__1405b,
+    .button_e131a9, .button__67645, .iconWrapper__9293f) {
+    border-radius: var(--radius-sm) !important;
+}
+
+:is(.attachButton__0923f, .buttonWrapper__24af7, .button__74017, .button__63abb, .chipletContainerInner__10651, .layout__20a53, .inner_b78547) {
+    border-radius: var(--radius-xs) !important;
+}
+
+:is(.visualMediaItemContainer_f4758a, .oneByOneGrid_f4758a, .inlineMediaEmbed__623de, .imageContent__0f481, .embedVideo__623de,
+    .mosaicItem__6c706, .tile__2f4f7, .tile__90dc5, .root__4ad81) {
+    border-radius: var(--radius-md) !important;
+}
+
+/* profile cards: rounded like every card; effects, frames and decorations render as in stock Discord (no clipping) */
+.outer_c0bea0 {
+    border-radius: var(--radius-lg) !important;
+}
+
+.outer_c0bea0 [class*="banner_"] {
+    border-top-left-radius: var(--radius-lg) !important;
+    border-top-right-radius: var(--radius-lg) !important;
+}
+
+.inner_c0bea0 {
+    border-radius: calc(var(--radius-lg) - 4px) !important;
+}
+
+/* ================= CALL / SCREENSHARE VIEW: same colors as the rest of the theme ================= */
+
+.callContainer_cb9592 {
+    background-color: var(--background-base-lower) !important;
+    color: var(--text-2);
+}
+
+/* the stage behind tiles is hardcoded black */
+.callContainer_cb9592 .root_bfe55a {
+    background: transparent !important;
+}
+
+.videoWrapper__2f4f7,
+.streamPreview__2f4f7,
+.tile__2f4f7,
+.tile__90dc5 {
+    background-color: var(--dz-solid-3) !important;
+}
+
+/* tray icons inherited a near-black color from the call container */
+.callContainer_cb9592 :is(.leftTrayIcon_cb9592, .rightTrayIcon_cb9592, .lookBlank__201d5),
+.callContainer_cb9592 .colorable_f1ceac.primaryDark_f1ceac {
+    color: var(--text-3) !important;
+}
+
+.callContainer_cb9592 :is(.leftTrayIcon_cb9592, .rightTrayIcon_cb9592, .lookBlank__201d5):hover,
+.callContainer_cb9592 .colorable_f1ceac.primaryDark_f1ceac:hover {
+    color: var(--text-1) !important;
+}
+
+.colorable_f1ceac.primaryDark_f1ceac:is(:hover, .active_f1ceac):not(.disabled_f1ceac) {
+    background: var(--hover) !important;
+}
+
+.callContainer_cb9592 .buttonSection__1405b {
+    background-color: var(--dz-solid-4) !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+}
+
+html[data-dz-glass] .callContainer_cb9592 .buttonSection__1405b {
+    background-color: color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent) !important;
+    backdrop-filter: blur(16px);
+}
+
+.callContainer_cb9592 .buttonSection__1405b .colorable_f1ceac:not(.red_f1ceac, .redGlow_f1ceac, .disconnect_f1ceac, .green_f1ceac) {
+    color: var(--text-2) !important;
+}
+
+/* ================= ACTIVITIES (removed by the plugin's patches; this catches labelled leftovers) ================= */
+
+html:not([data-dz-activities]) [aria-label="Start an Activity" i] {
+    display: none !important;
+}
+
+/* ================= WINDOW CONTROLS ================= */
+
+.winButtonClose_c38106::after { background-color: var(--dz-close) !important; }
+.winButtonMinMax_c38106:nth-child(1)::after { background-color: var(--dz-minimize) !important; }
+.winButtonMinMax_c38106:nth-child(2)::after { background-color: var(--dz-maximize) !important; }
+
+/* ================= TOP BAR ================= */
+
+.bar_c38106 [class*="wordmark"],
+.trailing_c38106 :is([aria-label*="Vencord Toolbox"], [aria-label*="DevTools"], [aria-label*="Developer Tools"], [aria-label="Inbox"]) {
+    display: none !important;
+}
+
+/* Terono quick-settings icon right of the arrows, same size as them (click handled by the plugin) */
+html[data-dz-quick] .backForwardButtons__63abb {
+    -webkit-app-region: no-drag;
+}
+
+html[data-dz-quick] .backForwardButtons__63abb::after {
+    content: "";
+    width: 26px;
+    height: 24px;
+    margin-inline-start: 2px;
+    border-radius: var(--radius-xs);
+    background: var(--dz-quick-icon) center / 16px no-repeat;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 120ms ease;
+}
+
+html[data-dz-quick] .backForwardButtons__63abb:hover::after {
+    opacity: 1;
+}
+
+/* ================= HORIZONTAL SERVER LIST SPACING =================
+   HSL makes the row 100vw long from an 8px offset (overflowing the right edge)
+   and glues the panels to its bottom. Same --gap on every side instead. */
+
+html:is([data-dz-guilds="top"], [data-dz-guilds="bottom"]) .guilds__5e434 {
+    height: calc(100vw - var(--gap) * 2) !important;
+}
+
+html[data-dz-guilds="top"] .guilds__5e434 {
+    translate: 0 2px;
+}
+
+html[data-dz-guilds="top"] .sidebarList__5e434 {
+    margin-top: calc(var(--gap) + 2px);
+}
+
+html[data-dz-guilds="top"] .page__5e434 {
+    padding-top: calc(var(--gap) + 2px);
+}
+
+html[data-dz-guilds="bottom"] .guilds__5e434 {
+    translate: 0 calc(var(--gap) * -1);
+}
+
+html[data-dz-guilds="bottom"] :is(.sidebar__5e434, .page__5e434) {
+    margin-bottom: var(--gap);
+}
+
+/* The server list is its own column at the window edge, whatever side channels / members are on.
+   When it can't stay in Discord's grid (right edge, or left edge with channels mirrored) it is pinned. */
+html:is([data-dz-guilds="right"], [data-dz-guilds="left"][data-dz-channels="right"]) .guilds__5e434 {
+    position: fixed !important;
+    top: var(--custom-app-top-bar-height);
+    bottom: var(--gap);
+    height: auto !important;
+    margin: 0 !important;
+    z-index: 3;
+}
+
+html[data-dz-guilds="right"] .guilds__5e434 {
+    right: var(--gap);
+}
+
+html[data-dz-guilds="left"][data-dz-channels="right"] .guilds__5e434 {
+    left: var(--gap);
+}
+
+html[data-dz-guilds="left"][data-dz-channels="right"] .page__5e434 {
+    padding-left: calc(var(--custom-guild-list-width) + var(--gap) * 2) !important;
+}
+
+/* horizontal lists span the window even when the channel column is on the right */
+html[data-dz-channels="right"]:is([data-dz-guilds="top"], [data-dz-guilds="bottom"]) .guilds__5e434 {
+    position: fixed !important;
+    left: var(--gap) !important;
+    translate: none;
+}
+
+html[data-dz-channels="right"][data-dz-guilds="top"] .guilds__5e434 {
+    top: calc(var(--custom-app-top-bar-height) + var(--custom-guild-list-width)) !important;
+}
+
+html[data-dz-channels="right"][data-dz-guilds="bottom"] .guilds__5e434 {
+    top: calc(100vh - var(--gap)) !important;
+}
+
+html[data-dz-guilds="right"] .page__5e434 {
+    padding-right: calc(var(--custom-guild-list-width) + var(--gap) * 2);
+}
+
+/* channel column on the right */
+/* Discord lays the app out on a named grid (servers | channels | page); mirror it */
+html[data-dz-channels="right"] .base__5e434 {
+    grid-template-areas: "titleBar titleBar titleBar" "notice notice guildsList" "page channelsList guildsList" !important;
+    grid-template-columns: [start] 1fr [pageEnd] min-content [channelsEnd] min-content [end] !important;
+}
+
+html[data-dz-channels="right"] .sidebar__5e434 {
+    grid-column: pageEnd / end !important;
+}
+
+/* the (small) user panel sits under the channel column, which is now the sidebar's left part */
+html[data-dz-channels="right"] .panels__5e434 {
+    left: 0 !important;
+    right: auto !important;
+}
+
+html[data-dz-channels="right"] .page__5e434 {
+    padding-right: 0;
+    padding-left: var(--gap);
+}
+
+html[data-dz-channels="right"][data-dz-guilds="right"] .sidebar__5e434 {
+    margin-right: calc(var(--custom-guild-list-width) + var(--gap) * 2);
+}
+
+/* member list / profile on the left of the chat */
+html[data-dz-members="left"] .content_f75fb0 {
+    flex-direction: row-reverse;
+}
+
+html[data-dz-members="left"] :is(.content_f75fb0 > .container_c8ffbb, .content_f75fb0 > .membersWrap_c8ffbb, .content_f75fb0 > aside > .outer_c0bea0) {
+    margin-left: 0 !important;
+    margin-right: var(--gap) !important;
+}
+
+/* ================= SERVER LIST ================= */
+
+.guilds__5e434 .childWrapper__6e9f8 {
+    transition: background-color 90ms ease, color 90ms ease !important;
+}
+
+/* ================= HOME LOGO: original colors, spins when opened ================= */
+
+.wrapper__6e9f8[data-list-item-id="guildsnav___home"] > .childWrapper__6e9f8 {
+    background-color: transparent !important;
+}
+
+.wrapper__6e9f8[data-list-item-id="guildsnav___home"] > .childWrapper__6e9f8::before {
+    content: "";
+    position: absolute;
+    width: var(--dz-logo-size);
+    height: var(--dz-logo-size);
+    background: var(--dz-home-logo) center / contain no-repeat;
+    transition: transform 550ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+}
+
+.wrapper__6e9f8[data-list-item-id="guildsnav___home"].selected__6e9f8 > .childWrapper__6e9f8::before {
+    transform: rotate(-360deg);
+}
+
+.wrapper__6e9f8[data-list-item-id="guildsnav___home"]:active > .childWrapper__6e9f8::before {
+    transform: scale(0.85);
+    transition-duration: 80ms;
+}
+
+/* ================= MENTIONS / NEW DMs ================= */
+
+.numberBadge__463b7 {
+    animation: dz-badge 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    will-change: transform;
+}
+
+.listItem__650eb {
+    position: relative;
+}
+
+.listItem__650eb:has(.numberBadge__463b7)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: var(--guildbar-avatar-size, 40px);
+    height: var(--guildbar-avatar-size, 40px);
+    border-radius: var(--radius-md);
+    box-shadow: 0 0 0 2px var(--accent-3), 0 0 12px var(--accent-3);
+    pointer-events: none;
+    animation: dz-glow 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+    will-change: opacity;
+}
+
+@keyframes dz-badge {
+    50% { transform: scale(1.15); }
+}
+
+@keyframes dz-glow {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.9; }
+}
+
+/* ================= HOVERS ================= */
+
+.link__2ea32,
+.interactive__972a0,
+.container__91a9d,
+.member_c8ffbb {
+    transition: background-color 110ms ease, color 110ms ease, transform 110ms ease;
+}
+
+.link__2ea32:hover,
+.interactive__972a0:hover,
+.container__91a9d:hover {
+    transform: translateX(2px);
+}
+
+.menu_c1e9c4 .item_c1e9c4 {
+    transition: none !important;
+}
+
+/* ================= PERFORMANCE MODE ================= */
+
+html[data-dz-lite] .numberBadge__463b7,
+html[data-dz-lite] .listItem__650eb::after {
+    animation: none !important;
+}
+
+html[data-dz-lite] :is(.link__2ea32, .interactive__972a0, .container__91a9d, .member_c8ffbb, .guilds__5e434 .childWrapper__6e9f8) {
+    transition: none !important;
+}
+
+html[data-dz-lite] :is(.link__2ea32, .interactive__972a0, .container__91a9d):hover {
+    transform: none;
+}
+
+/* ================= USER VOLUME SLIDER ================= */
+
+.bar_a562c8 { background-color: var(--bg-1) !important; }
+.barFill_a562c8 { background-color: var(--accent-3) !important; }
+.grabber_a562c8 {
+    background-color: var(--text-1) !important;
+    border-color: var(--accent-3) !important;
+}
+
+/* ================= HIDDEN: Quests, Nitro ================= */
+
+.channel__972a0:has(a[href^="/quest-home"], a[href="/store"]),
+a[href^="/quest-home"],
+a[href="/store"] {
+    display: none !important;
+}
+
+/* ================= CHANNEL HEADER: name / buttons / search in left, middle or right zones =================
+   The toolbar is flattened (display: contents) so its buttons and search become direct flex items;
+   two flexible spacers split the row into zones. Order: left 1 | spacer 2 | middle 3 | spacer 4 | right 5. */
+
+.subtitleContainer_f75fb0 {
+    height: var(--custom-channel-header-height);
+}
+
+/* the header is a column flexbox: justify-content = vertical centering */
+.title_f75fb0.container__9293f {
+    height: 100%;
+    min-height: 0;
+    padding: 0 6px 0 12px;
+    justify-content: center;
+}
+
+.title_f75fb0 .upperContainer__9293f {
+    align-items: center;
+    gap: 4px;
+}
+
+.title_f75fb0 .upperContainer__9293f::before,
+.title_f75fb0 .upperContainer__9293f::after {
+    content: "";
+    flex: 1 1 0;
+}
+
+.title_f75fb0 .upperContainer__9293f::before { order: 2; flex-basis: var(--dz-bal-a, 0px); }
+.title_f75fb0 .upperContainer__9293f::after { order: 4; flex-basis: var(--dz-bal-b, 0px); }
+
+.title_f75fb0 .toolbar__9293f {
+    display: contents;
+}
+
+.title_f75fb0 .children__9293f {
+    order: var(--dz-h-name);
+    flex: 0 1 auto;
+}
+
+.title_f75fb0 .toolbar__9293f > * {
+    order: var(--dz-h-buttons);
+}
+
+.title_f75fb0 .toolbar__9293f > [class*="search_"] {
+    order: var(--dz-h-search);
+    flex: 0 0 calc(var(--dz-member-list-width) - 7px);
+}
+
+.title_f75fb0 .toolbar__9293f [class*="searchBar_"] {
+    width: 100% !important;
+    height: 28px;
+    background: var(--bg-2) !important;
+}
+
+/* without the plugin: sensible defaults for what the plugin makes configurable */
+html:not([data-dz-plugin]) .title_f75fb0 .toolbar__9293f > :is([aria-label*="Video"], [aria-label*="User Profile"], [aria-label*="Member List"], [aria-label="Threads"], [aria-label="Inbox"]),
+html:not([data-dz-plugin]) .title_f75fb0 .children__9293f:has(> .avatar_f75fb0) {
+    display: none !important;
+}
+
+/* ================= CHAT BAR: equal 32px slots, all vertically centered ================= */
+
+/* without the plugin: translate + emoji only (the plugin replaces this with your chat bar settings) */
+html:not([data-dz-plugin]) .buttons__74017 > :not(:has(.emojiButton__74017, [aria-label="Open Translate Modal"])) {
+    display: none !important;
+}
+
+.buttons__74017 {
+    gap: 4px;
+    margin-inline-end: 0;
+}
+
+.inner__74017 {
+    padding-inline-start: 14px;
+    align-items: center;
+}
+
+.inner__74017 > .attachWrapper__0923f {
+    order: 1;
+    align-self: center;
+    margin: 0 8px 0 4px;
+}
+
+.buttons__74017 > *,
+.inner__74017 > .attachWrapper__0923f,
+.attachButton__74017 {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.buttons__74017 .button__74017,
+.attachButton__74017 {
+    margin: 0 !important;
+}
+
+/* ================= PINS: centered empty state ================= */
+
+[class*="messagesPopoutWrap_"] [class*="emptyPlaceholder_"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* ================= INPUTS: message bar, search bars, find-a-conversation all in theme colors ================= */
+
+:is(.channelTextArea_f75fb0, .searchBar_c322aa, .searchBar_e6b769 > button) {
+    background-color: var(--bg-3) !important;
+    border: 1px solid color-mix(in srgb, var(--dz-accent) 22%, transparent) !important;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+:is(.channelTextArea_f75fb0, .searchBar_c322aa):focus-within {
+    border-color: color-mix(in srgb, var(--dz-accent) 70%, transparent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--dz-accent) 18%, transparent) !important;
+}
+
+/* ================= ROLE COUNTS in the member list (format picked in the plugin) ================= */
+
+.dz-role-count {
+    margin-inline-start: 0.3em;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ================= SCREENSHARE PICKER ================= */
+
+/* "Share Screen" hover label is a plain div painted --white / --black, not a themed button */
+.sourceOverlayCTA__2f580 {
+    background-color: var(--dz-accent) !important;
+    color: #ffffff !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--dz-accent) 35%, transparent);
+}
+
+.sourceOverlayCTA__2f580 * {
+    color: #ffffff !important;
+}
+
+.sourcePreview__2f580 {
+    background-color: var(--dz-solid-3) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+/* ================= CREATOR BADGE (added by the plugin) ================= */
+
+[data-dz-creator] {
+    animation: dz-creator-glow 2.6s ease-in-out infinite;
+}
+
+@keyframes dz-creator-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgb(122 92 255 / 55%)); }
+    50% { filter: drop-shadow(0 0 6px rgb(122 92 255 / 95%)) drop-shadow(0 0 2px rgb(66 156 255 / 80%)); }
+}
+
+html[data-dz-lite] [data-dz-creator] {
+    animation: none;
+    filter: drop-shadow(0 0 3px rgb(122 92 255 / 70%));
+}
