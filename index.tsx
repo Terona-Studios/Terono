@@ -17,7 +17,7 @@ import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpack/common";
 
-import { CREATOR_BADGE } from "./assets";
+import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
 
@@ -198,6 +198,34 @@ const creatorBadge: ProfileBadge = {
     props: { "data-dz-creator": "" } as ProfileBadge["props"],
 };
 
+const VROCA_ID = "899345095982194688";
+
+const vrocaBadge: ProfileBadge = {
+    id: "terono-vroca",
+    description: "Vroca Macka",
+    iconSrc: VROCA_BADGE,
+    position: BadgePosition.START,
+    shouldShow: ({ userId }) => userId === VROCA_ID,
+    props: { "data-dz-vroca": "" } as ProfileBadge["props"],
+};
+
+// the glow ships with the plugin, so it works without waiting for the theme file to update
+const BADGE_CSS = `
+[data-dz-vroca] {
+    border-radius: 50%;
+    animation: dz-vroca-glow 2.4s ease-in-out infinite;
+}
+@keyframes dz-vroca-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px rgb(168 85 247 / 70%)); }
+    50% { filter: drop-shadow(0 0 6px rgb(168 85 247 / 100%)) drop-shadow(0 0 3px rgb(217 70 239 / 85%)); }
+}
+html[data-dz-lite] [data-dz-vroca] {
+    animation: none;
+    filter: drop-shadow(0 0 3px rgb(168 85 247 / 90%));
+}`;
+
+let badgeStyle: HTMLStyleElement | null = null;
+
 /* ================= live settings =================
    This Vencord build never calls a setting's onChange, so listen to the store and re-apply.
    Every apply step skips work when its output is unchanged, so this stays cheap. */
@@ -345,6 +373,9 @@ export default definePlugin({
         loadStoredFiles();
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         addProfileBadge(creatorBadge);
+        addProfileBadge(vrocaBadge);
+        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS });
+        document.head.append(badgeStyle);
         addGlobalContextMenuPatch(menuPatch);
         document.addEventListener("click", onDocClick, true);
         syncChannelKind(SelectedChannelStore.getChannelId());
@@ -354,6 +385,9 @@ export default definePlugin({
         removeGlobalContextMenuPatch(menuPatch);
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
         removeProfileBadge(creatorBadge);
+        removeProfileBadge(vrocaBadge);
+        badgeStyle?.remove();
+        badgeStyle = null;
         document.removeEventListener("click", onDocClick, true);
         detachHeader();
         removeAll();
