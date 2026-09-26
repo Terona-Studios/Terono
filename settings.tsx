@@ -705,7 +705,8 @@ export const settings = definePluginSettings({
     },
 });
 
-const VENDROID_BUILD = "https://vde-builds.nin0.dev/vencord/browser.js";
+// what VendroidEnhanced itself stores for "its own build"
+const VENDROID_BUILD = "unified";
 
 declare global {
     interface Window {

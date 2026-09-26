@@ -291,7 +291,7 @@ Discord's own Android app can't load Vencord. **VendroidEnhanced** can: it's an 
    https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Android.js
    ```
 
-   It saves as you type; there's no save button.
+   The box normally says `unified` (VendroidEnhanced's own build): replace that with the link. It saves as you type; there's no save button.
 4. Close the app completely (swipe it away in recent apps) and open it again.
 
 That's it. Terono turns itself on and adds its theme. On every start the app shows a short message that the build is being downloaded again. That's how it keeps Terono up to date, and it's normal.
@@ -300,7 +300,7 @@ That's it. Terono turns itself on and adds its theme. On every start the app sho
 
 - Discord uses its own phone layout: one column at a time, the **☰** button opens the server and channel list, and the member list button opens the members over the chat. Terono follows that layout, so **Server List**, **Channels Side**, **Members Side** and the header positions only apply on desktop.
 - Everything else works the same: colors, cards (glass, gradient, card media), backgrounds, fonts, logo, role counts, chat bar, menus, loading screen, profiles.
-- The **VendroidEnhanced** settings tab belongs to VendroidEnhanced's own build, so it isn't there while Terono is loaded. To go back, open the Terono settings, scroll to the bottom and tap **Use VendroidEnhanced's build**, then restart the app.
+- The **VendroidEnhanced** settings tab belongs to VendroidEnhanced's own build, so it isn't there while Terono is loaded. To go back, open the Terono settings, scroll to the bottom and tap **Use VendroidEnhanced's build** (it puts `unified` back in that box), then restart the app.
 - VendroidEnhanced is a community app, not made by Discord or Vencord. It has no voice chat yet.
 
 #### Test it on your phone
