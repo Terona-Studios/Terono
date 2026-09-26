@@ -12,7 +12,7 @@ import { OptionType } from "@utils/types";
 import { chooseFile, saveFile } from "@utils/web";
 import { Alerts, showToast, TextInput, Toasts, useEffect, useState } from "@webpack/common";
 
-import { applyAll, getUploadedLogo, HEX_RE, LOGO_DATA_RE, settings, setUploadedLogo, URL_RE } from "./settings";
+import { applyAll, getUploadedLogo, HEX_RE, LOGO_DATA_RE, refreshSettingsUi, settings, setUploadedLogo, URL_RE } from "./settings";
 
 const PROFILES_KEY = "Terono_profiles";
 const FORMAT = "terono-profile";
@@ -92,6 +92,7 @@ async function applyProfile(p: Profile) {
     }
     if (p.logo) await setUploadedLogo(p.logo);
     applyAll();
+    refreshSettingsUi();
     showToast(`Applied “${p.name}”.`, Toasts.Type.SUCCESS);
 }
 
@@ -120,6 +121,7 @@ function resetAll() {
             }
             await setUploadedLogo(null);
             applyAll();
+            refreshSettingsUi();
             showToast("Terono reset to defaults.", Toasts.Type.SUCCESS);
         },
     });

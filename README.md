@@ -7,32 +7,31 @@
 <p align="center">A fast, customizable Discord theme and Vencord plugin by <b>Terona Studios</b>.</p>
 
 <p align="center">
-  <img src="assets/screenshots/dark.png" alt="Terono, Dark cards" width="100%">
+  <img src="assets/screenshots/classic.png" alt="Terono Classic preset" width="100%">
 </p>
 
-| Glass | White | Settings |
-| --- | --- | --- |
-| <img src="assets/screenshots/glass.png" alt="Terono, Glass cards"> | <img src="assets/screenshots/white.png" alt="Terono, White cards"> | <img src="assets/screenshots/settings.png" alt="Terono settings"> |
+## Theme presets
 
-<details>
-<summary><b>More looks</b> (layouts, colors, cards and fonts)</summary>
-
-<br>
+Every look below is a preset: **Settings → Vencord → Plugins → Terono → Presets → Apply**. It sets the exact colors, cards, background, layout, header and font from the picture, and you can change anything afterwards.
 
 | | |
 | --- | --- |
-| <img src="assets/screenshots/red-sharp-left.png" alt="Red, sharp gray cards, server list on the left"> | <img src="assets/screenshots/green-right.png" alt="Green, round cards, server list on the right"> |
-| **Red · Sharp:** gray cards with sharp corners, server list on the left, Inter font, `Role · 1` counts | **Green · Right:** round cards, server list on the right, channel name centered, Outfit font, `Role [1]` counts |
-| <img src="assets/screenshots/pink-glass.png" alt="Pink glass cards"> | <img src="assets/screenshots/orange-bottom-mirrored.png" alt="Orange, server list at the bottom, member list on the left"> |
-| **Pink · Glass:** see-through glass cards at 50%, round corners, Poppins font | **Orange · Bottom:** server list at the bottom, member list moved next to the channels, Manrope font |
-| <img src="assets/screenshots/custom-gradient.png" alt="Custom teal to indigo gradient cards"> | <img src="assets/screenshots/white-mirrored.png" alt="White cards, fully mirrored layout"> |
-| **Custom gradient:** your own card colors (teal → indigo here), custom primary color, Plus Jakarta Sans | **White · Mirrored:** white cards, everything flipped: servers and channels right, members left, search left |
-| <img src="assets/screenshots/purple-header-middle.png" alt="Purple glass, channel name in the middle, no role counts"> | <img src="assets/screenshots/discord-font-minimal.png" alt="Solid black background, Discord font, server list on the left"> |
-| **Purple · Centered:** glass at 70% without blur, channel name in the middle, role counts hidden, Sora font | **Minimal:** solid black background, Discord's own font, server list on the left, `Role — 1` counts |
+| <img src="assets/screenshots/frosted.png" alt="Frosted Glass preset"> | <img src="assets/screenshots/paper.png" alt="Paper White preset"> |
+| **Frosted Glass:** see-through blurred cards over a blue-violet glow | **Paper White:** light cards on a soft blue-gray background |
+| <img src="assets/screenshots/crimson.png" alt="Crimson Edge preset"> | <img src="assets/screenshots/emerald.png" alt="Emerald preset"> |
+| **Crimson Edge:** red, gray cards with sharp corners, server list on the left, Inter | **Emerald:** green, round cards, server list on the right, centered title, Outfit |
+| <img src="assets/screenshots/sakura.png" alt="Sakura Glass preset"> | <img src="assets/screenshots/amber.png" alt="Amber Dock preset"> |
+| **Sakura Glass:** pink glass cards with round corners, Poppins | **Amber Dock:** server list at the bottom, members next to the channels, Manrope |
+| <img src="assets/screenshots/lagoon.png" alt="Deep Lagoon preset"> | <img src="assets/screenshots/mirror.png" alt="Mirror White preset"> |
+| **Deep Lagoon:** teal to indigo gradient cards, teal accent, Plus Jakarta Sans | **Mirror White:** white cards, everything mirrored: servers and channels right, members left |
+| <img src="assets/screenshots/violet.png" alt="Violet Focus preset"> | <img src="assets/screenshots/minimal.png" alt="Minimal preset"> |
+| **Violet Focus:** purple glass without blur, centered channel name, no role counts, Sora | **Minimal:** solid black, soft corners, server list on the left, Discord's own font |
 
-Every one of these is just a few clicks in **Settings → Vencord → Plugins → Terono**, and you can save each as a profile to switch between them.
+The big picture at the top is **Terono Classic**.
 
-</details>
+<p align="center">
+  <img src="assets/screenshots/settings.png" alt="Terono settings" width="80%">
+</p>
 
 ---
 
@@ -89,6 +88,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 
 ## What you can customize (plugin)
 
+- **Theme presets:** 11 complete looks in one click, then customize them.
 - **Profiles:** save your setup or parts of it, switch between looks, export and import them as files, reset to defaults.
 - **Colors:** primary color (presets or any color), voice/online color, window button colors.
 - **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid or glass, with opacity and blur.

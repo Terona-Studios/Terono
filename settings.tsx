@@ -16,7 +16,7 @@ import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { PluginHub } from "./hub";
 import { ProfilesPanel } from "./profiles";
-import { UpdatePanel } from "./updater";
+import { TeronoSettings } from "./settingsUi";
 
 export const DEFAULT_LOGO = TERONO_LOGO;
 export const LOGO_KEY = "Terono_homeLogo";
@@ -252,9 +252,15 @@ const FONTS: Record<string, string> = {
 const custom = (key: "accentPreset" | "cardPreset") => () => settings.store[key] !== "custom";
 
 export const settings = definePluginSettings({
-    updates: {
+    // the whole settings screen (tabs); every option below is drawn inside it
+    ui: {
         type: OptionType.COMPONENT,
-        component: () => <UpdatePanel />,
+        component: () => <TeronoSettings />,
+    },
+    presetId: {
+        type: OptionType.STRING,
+        description: "Last theme preset applied (shown as \"Customized\" once changed).",
+        default: "",
     },
     autoUpdateCheck: {
         type: OptionType.BOOLEAN,
@@ -700,6 +706,61 @@ export const settings = definePluginSettings({
         component: () => <PluginHub />,
     },
 });
+
+/* ================= settings screen ================= */
+
+// readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
+const NAMES: Record<string, string> = {
+    autoUpdateCheck: "Check for updates automatically",
+    accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
+    cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
+    cardShape: "Corners", cardStyle: "Material", glassOpacity: "Glass opacity", glassBlur: "Glass blur",
+    cardMedia: "Picture or video", cardMediaUrl: "Link", cardMediaDim: "Card color over it",
+    background: "Background", bgMediaSource: "Source", bgMediaUrl: "Link", bgMediaDim: "Darken",
+    bgBase: "Base color", bgColor1: "Glow color 1", bgColor2: "Glow color 2",
+    serverList: "Server list", channelsSide: "Channel list side", membersSide: "Member list side",
+    roleCount: "Role count", roleCountCustom: "Custom role count",
+    font: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
+    quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens",
+    headerName: "Channel name", headerHash: "# icon", headerButtons: "Buttons", headerSearch: "Search bar", headerFollow: "Follow button",
+    dmHeaderName: "Name & avatar", dmHeaderButtons: "Buttons", dmHeaderSearch: "Search bar", headerHiddenButtons: "Hide buttons by name",
+    chatTranslate: "Translate", chatGif: "GIF", chatEmoji: "Emoji", chatSticker: "Sticker", chatGift: "Gift", chatApps: "Apps", chatOtherVencord: "Other plugins' buttons",
+    showActivities: "Show activities",
+    hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
+    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode",
+};
+
+// Only the screen shows in Vencord's own list; each option's "show only when…" rule moves to dzHidden, which the
+// screen checks. Internal values (last version, last preset) are never shown.
+for (const [key, def] of Object.entries(settings.def as Record<string, any>)) {
+    if (key === "ui") continue;
+    if (NAMES[key]) def.displayName = NAMES[key];
+    // the group headings already say where ("In servers", "Chat bar buttons"), so drop that part of the description
+    if (typeof def.description === "string") {
+        const d = def.description.replace(/^(Servers|DMs|Chat bar): /, "");
+        def.description = d.charAt(0).toUpperCase() + d.slice(1);
+    }
+    def.dzHidden = key === "lastVersion" || key === "presetId" ? true : def.hidden;
+    def.hidden = true;
+}
+
+// Bulk changes (preset, profile, reset) remount the open screen so every control shows the new values.
+let revision = 0;
+const revisionListeners = new Set<(r: number) => void>();
+
+export function refreshSettingsUi() {
+    revision++;
+    for (const l of revisionListeners) l(revision);
+}
+
+export function useSettingsRevision() {
+    const [rev, setRev] = useState(revision);
+    useEffect(() => {
+        revisionListeners.add(setRev);
+        return () => void revisionListeners.delete(setRev);
+    }, []);
+    return rev;
+}
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 

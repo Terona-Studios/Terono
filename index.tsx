@@ -19,6 +19,7 @@ import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpa
 
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
+import { applyPreset, PRESETS } from "./presets";
 import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
 import { VERSION } from "./version";
@@ -386,6 +387,14 @@ export default definePlugin({
     RoleCount,
 
     renderMessageAccessory: props => <AutoTranslate message={props.message} />,
+
+    // theme presets, also reachable from the console: Vencord.Plugins.plugins.Terono.applyPresetById("crimson")
+    presets: PRESETS,
+    applyPresetById(id: string) {
+        const p = PRESETS.find(x => x.id === id);
+        if (p) applyPreset(p);
+        return !!p;
+    },
 
     async start() {
         await migrate();

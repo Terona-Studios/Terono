@@ -106,94 +106,80 @@ Either:
 - click the **Terono icon** next to the ← → arrows at the top left, or
 - **User Settings** (⚙ next to your name) → **Vencord** → **Plugins** → search **Terono** → ⚙.
 
-Every change shows up straight away; there's nothing to save or restart.
+At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, Menus, Extras, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
 
 ---
 
 ## 5. Make it yours
 
-The screenshots in the [README gallery](../README.md) were all made with these settings.
+### Presets: a whole look in one click
+
+The **Presets** tab has 11 complete looks, the same ones as the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
+
+1. Click **Apply** on one and confirm. It sets the colors, cards, background, layout, header and font exactly like its picture.
+2. Change anything you like in the other tabs. The preset gets a **Customized** tag, and **Re-apply** brings the original back.
+
+Your logo, menus, chat bar buttons, translate and performance settings are never touched by a preset. To keep your current look, save it under **Profiles** before applying one.
 
 ### Colors
 
-- **Accent Preset:** the primary color. Pick Blue, Red, Purple, Green, Pink or Orange, or use the color picker under it for any color. Used for buttons, links, mentions, selection and glow.
-- **Voice / online color** and the three **window button** colors (close, minimize, maximize) sit right under it.
+- **Color preset:** Blue, Red, Purple, Green, Pink or Orange, or use the **Primary color** picker under it for any color. It's used for buttons, links, mentions, selection and glow.
+- **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
 
 ### Cards (the panels)
 
-- **Card Preset:** **Dark**, **Gray**, **White**, or **Custom**.
-- **Custom** unlocks:
-  - **Card Fill:** **Solid color** or **Gradient**, using two colors plus **Card Angle**.
-  - **Text color.**
-- **Card Shape:** **Sharp**, **Soft**, **Curved** or **Round** corners.
-- **Card Style:**
-  - **Solid**, or
-  - **Glass** (see-through): set how see-through it is with **Glass Opacity**, and turn **Glass Blur** on or off. Menus, popups and buttons always stay solid so they stay readable.
-- **Card Media:** an image, GIF or video inside the panels, separate from the app background.
-  - Set it to **URL** and paste a direct link in **Card Media Url**, or to **File** and upload one in **Card Media File** (up to 100 MB).
-  - The media runs across all panels as one picture; the gaps between the panels keep the app background.
-  - **Card Media Dim** sets how much of the card color lies over it. Higher is easier to read.
-  - Works together with every card preset, gradient and glass.
+- **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**), **Card color** and **Text color**.
+- **Shape & material:**
+  - **Corners:** **Sharp**, **Soft**, **Curved** or **Round**.
+  - **Material:** **Solid** or **Glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Menus, popups and buttons always stay solid so they stay readable.
+- **Picture or video in the cards:** an image, GIF or video inside the panels, separate from the background.
+  - Choose **URL** and paste a direct link in **Link**, or **File** and upload one (up to 100 MB).
+  - It runs across all panels as one picture; the gaps between the panels keep the background.
+  - **Card color over it** sets how much of the card color lies on top. Higher is easier to read.
 
 ### Background (behind the panels)
 
-Set with **Background**:
-
-- **Animated gradient** (default) or **Static gradient:** uses the two background colors.
-- **Solid color:** uses only the base color.
-- **Image / GIF / Video:**
-  - Paste a direct `https://` link in **Bg Media Url**, or set **Bg Media Source** to **File** and upload one (up to 100 MB).
-  - **Bg Media Dim** darkens it so text stays readable.
-  - GIFs and videos use the most power; see [Performance](#performance).
+- **Background:** **Animated gradient** (default), **Static gradient**, **Solid color**, or **Image / GIF / Video**.
+- **Picture, GIF or video:** choose **URL** and paste a direct `https://` link, or **File** and upload one (up to 100 MB). **Darken** keeps text readable. GIFs and videos use the most power; see [Performance](#performance).
+- **Colors:** **Base color** (the whole background when Solid) and **Glow color 1 / 2** for the gradients.
 
 ### Layout
 
 | Setting | Options |
 | --- | --- |
-| **Server List** | Left (Discord default), Top, Bottom, Right |
-| **Channels Side** | Left, Right |
-| **Members Side** | Right, Left |
+| **Server list** | Left (Discord default), Top, Bottom, Right |
+| **Channel list side** | Left, Right |
+| **Member list side** | Right, Left |
 
-You can combine them freely. For example, Server List **Right** + Channels Side **Right** + Members Side **Left** mirrors the whole app.
+You can combine them freely. For example, Server list **Right** + Channel list side **Right** + Member list side **Left** mirrors the whole app.
 
-### Channel header (the bar above the chat)
+### Header (the bar above the chat)
 
-Servers and DMs are set separately. The DM settings start with **Dm**:
+- **In servers:** **Channel name** (Left, Middle, Right or Hidden), **# icon**, **Buttons** (pins, threads, notifications…) and **Search bar**, each Left, Middle or Right, plus the **Follow button** in announcement channels.
+- **In DMs:** **Name & avatar**, **Buttons** and **Search bar**, set separately from servers.
+- **Hidden buttons:** type words from button names, comma separated (e.g. `Threads, Inbox`), and matching buttons disappear.
 
-- **Header Name** / **Dm Header Name:** the channel name: Left, Middle, Right or Hidden. **Header Hash** shows or hides the **#** icon.
-- **Header Buttons** / **Dm Header Buttons** (pins, threads, notifications…): Left, Middle or Right.
-- **Header Search** / **Dm Header Search:** the search bar: Left, Middle, Right or Hidden.
-- **Header Follow:** the Follow button in announcement channels.
-- **Header Hidden Buttons:** type words from button names, comma separated (e.g. `Threads, Inbox`), and matching buttons disappear.
+### Chat & Members
 
-### Chat bar
+- **Chat bar buttons:** turn **Translate**, **GIF**, **Emoji**, **Sticker**, **Gift**, **Apps** and **Other plugins' buttons** on or off.
+- **Member list:** **Role count** as `Role (1)`, `Role · 1`, `Role [1]`, `Role 1`, `Role — 1`, no count, or **Custom**. With Custom, write your own text in **Custom role count**; `%users%` is replaced with the number (e.g. `• %users% online`).
+- **Activities:** turn off **Show activities** to hide *Start an Activity* everywhere: voice panel, call buttons and call grid.
 
-Turn each button on or off with the **Chat …** switches: **Chat Translate**, **Chat Gif**, **Chat Emoji**, **Chat Sticker**, **Chat Gift**, **Chat Apps**, and **Chat Other Vencord** for buttons added by other plugins.
+### Font & Logo
 
-### Member list
-
-**Role Count:** `Role (1)`, `Role · 1`, `Role [1]`, `Role 1`, `Role — 1`, no count, or **Custom**. With **Custom**, write your own text in **Role Count Custom**; `%users%` is replaced with the number (e.g. `• %users% online`).
-
-### Font
-
-Pick one of 22 fonts in **Font**, or **Custom (upload)** and **Font File** to use your own `.ttf`, `.otf`, `.woff` or `.woff2` file.
-
-### Home logo
-
-The Terono logo sits on the Home button by default.
-
-- To use your own, set **Logo Source** to **URL** and paste a link in **Logo Url**, or to **File** and upload an image in **Logo File**.
-- **Logo Size** makes it bigger or smaller.
-- Leave **Logo Url** empty to go back to the Terono logo.
+- **Font:** 22 fonts, or **Custom (upload)** to use your own `.ttf`, `.otf`, `.woff` or `.woff2` file.
+- **Home logo:** the Terono logo sits on the Home button by default. Set **Logo source** to **URL** and paste a **Logo link**, or to **File** and upload an image. **Logo size** makes it bigger or smaller; an empty link brings the Terono logo back.
+- **Quick settings icon:** the Terono icon next to the arrows that opens these settings.
+- **Terono loading screens:** the Terono logo and "Terono Discord" instead of Discord's logo while Discord starts, updates and connects, in your colors. The small update window ("Checking for updates…") changes from the next start.
 
 ---
 
 ## 6. Save looks as profiles
 
-At the top of the Terono settings:
+In the **Profiles** tab:
 
 1. Set everything up the way you like.
-2. Type a name under **Profiles**, choose which parts to include (everything, or only some sections like colors or layout), and click **Save current**.
+2. Type a name, choose which parts to include (everything, or only some sections like colors or layout), and click **Save current**.
 3. Click **Apply** on a profile to switch to it in one go.
 4. **Export** saves a profile as a file you can share. **Import JSON** loads one someone sent you.
 5. **Reset to defaults** puts every Terono setting back to the defaults. Your saved profiles are kept.
@@ -202,25 +188,23 @@ At the top of the Terono settings:
 
 ## 7. Extra features
 
-- **Right-click menus:** hide any item by typing its exact name, comma separated. Use **Hidden Menu Items** for every menu, **Hidden Server Menu** for the server menu and **Hidden User Menu** for the user/DM menu.
-- **Activities:** turn off **Show Activities** to hide *Start an Activity* everywhere: voice panel, call buttons and call grid.
-- **Auto Translate** (off by default): translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Keep Languages** for languages you read yourself. Message text is sent to Google Translate while this is on.
-- **Plugin Hub:** turn on and set up Vencord plugins that go well with Terono from one list, e.g. MessageLogger, ShowHiddenChannels, PinDMs and more.
-- **Quick settings icon:** turn off **Quick Icon** if you don't want the Terono icon next to the arrows.
-- **Loading screens:** while Discord starts, updates and connects, you see the Terono logo and "Terono Discord" instead of Discord's logo, in your colors. Turn off **Loading Screen** to get Discord's back. The small update window ("Checking for updates…") changes from the next start.
+- **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
+- **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
+- **Extras → Updates:** **Check for updates automatically** at start and every few hours.
+- **Plugins tab:** turn on and set up Vencord plugins that go well with Terono from one list, e.g. MessageLogger, ShowHiddenChannels, PinDMs and more.
 
 ### Performance
 
-On a slow PC or a laptop on battery, turn on **Lite** (performance mode). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
+On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
 
 - **Background** set to **Static gradient** or **Solid color**, instead of Animated or a GIF/video.
-- **Card Style** set to **Solid**, or Glass with **Glass Blur** off.
+- **Material** set to **Solid**, or Glass with **Glass blur** off.
 
 ---
 
 ## 8. Updating
 
-- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. Terono also checks by itself when Discord starts and every few hours, and shows a notification when an update is out. Turn that off with **Auto Update Check**.
+- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. Terono also checks by itself when Discord starts and every few hours, and shows a notification when an update is out. Turn that off with **Check for updates automatically** (Extras tab).
 - **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
