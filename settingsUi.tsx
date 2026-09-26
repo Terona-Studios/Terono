@@ -11,7 +11,7 @@
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { OptionComponentMap } from "@components/settings/tabs/plugins/components";
-import { Alerts, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { applyPreset, Preset, presetMatches, PRESETS,presetValues } from "./presets";
 import { settings, useSettingsRevision } from "./settings";
@@ -194,17 +194,32 @@ function swatch(p: Preset) {
     return `radial-gradient(circle at 25% 30%, ${v.bgColor1}55, transparent 55%), radial-gradient(circle at 80% 75%, ${v.bgColor2}, transparent 60%), linear-gradient(${card}, ${card}) 12% 22% / 76% 60% no-repeat, ${v.bgBase}`;
 }
 
+// Discord's own alert no longer shows a third button, so the choice gets its own small dialog
 function confirmApply(p: Preset) {
-    Alerts.show({
-        title: `Apply ${p.name}?`,
-        body: "This replaces your colors, cards, background, layout, header and font with the preset's. Your logo, menus, chat bar buttons and other options stay. To keep your current look, save it under Profiles first.",
-        confirmText: "Apply",
-        cancelText: "Cancel",
-        onConfirm() {
-            applyPreset(p);
-            showToast(`${p.name} applied. Change anything you like in the other tabs.`, Toasts.Type.SUCCESS);
-        },
-    });
+    const apply = (withLayout: boolean) => {
+        applyPreset(p, withLayout);
+        showToast(`${p.name} applied${withLayout ? "" : " (your layout kept)"}. Change anything you like in the other tabs.`, Toasts.Type.SUCCESS);
+    };
+    openModal(props => (
+        <Modal
+            {...props}
+            title={`Apply ${p.name}`}
+            actions={[
+                { text: "Cancel", variant: "secondary", onClick: () => props.onClose() },
+                { text: "Only the theme", variant: "secondary", onClick: () => { apply(false); props.onClose(); } },
+                { text: "Theme + layout", variant: "primary", onClick: () => { apply(true); props.onClose(); } },
+            ]}
+        >
+            <div className="dz-apply">
+                <div className="dz-apply-img" style={{ background: swatch(p) }}>
+                    <img src={thumb(p.id)} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
+                </div>
+                <p><b>Theme + layout:</b> colors, cards, background and font, plus the preset's layout: server list position, channel and member list sides and the header.</p>
+                <p><b>Only the theme:</b> colors, cards, background and font. Your layout stays as it is.</p>
+                <p className="dz-apply-note">Your logo, menus, chat bar buttons and other options stay either way. To keep your current look, save it under Profiles first.</p>
+            </div>
+        </Modal>
+    ));
 }
 
 /* ================= styles ================= */
@@ -253,6 +268,12 @@ const CSS = `
 .dz-preset-name { font: 700 15px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); }
 .dz-preset-desc { margin-top: 3px; font-size: 13px; line-height: 1.4; color: var(--text-muted, #aaa); }
 .dz-preset > button { align-self: stretch; }
+
+.dz-apply { color: var(--text-default, #fff); }
+.dz-apply-img { aspect-ratio: 16 / 9; margin-bottom: 14px; border-radius: 10px; overflow: hidden; }
+.dz-apply-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.dz-apply p { margin: 0 0 10px; line-height: 1.45; }
+.dz-apply-note { color: var(--text-muted, #aaa); font-size: 13px; }
 
 @keyframes dz-set-in { from { opacity: 0; transform: translateY(4px); } }
 @media (prefers-reduced-motion: reduce) { .dz-set-body { animation: none; } .dz-preset, .dz-set-tab { transition: none; } }`;

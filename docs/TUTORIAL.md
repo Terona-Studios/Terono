@@ -116,7 +116,9 @@ At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Car
 
 The **Presets** tab has 11 complete looks, the same ones as the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
 
-1. Click **Apply** on one and confirm. It sets the colors, cards, background, layout, header and font exactly like its picture.
+1. Click **Apply** on one and choose:
+   - **Theme + layout:** colors, cards, background and font, plus the preset's layout (server list position, channel and member list sides, header), exactly like its picture.
+   - **Only the theme:** colors, cards, background and font; your layout stays as it is.
 2. Change anything you like in the other tabs. The preset gets a **Customized** tag, and **Re-apply** brings the original back.
 
 Your logo, menus, chat bar buttons, translate and performance settings are never touched by a preset. To keep your current look, save it under **Profiles** before applying one.

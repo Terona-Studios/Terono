@@ -12,7 +12,7 @@
 
 ## Theme presets
 
-Every look below is a preset: **Settings → Vencord → Plugins → Terono → Presets → Apply**. It sets the exact colors, cards, background, layout, header and font from the picture, and you can change anything afterwards.
+Every look below is a preset: **Settings → Vencord → Plugins → Terono → Presets → Apply**. Choose **Theme + layout** for the exact look in the picture, or **Only the theme** to keep your own layout. You can change anything afterwards.
 
 | | |
 | --- | --- |

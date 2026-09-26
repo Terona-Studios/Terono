@@ -7,13 +7,26 @@
 /* ================= exact centering of the header's middle zone =================
    Items are ordered left(1) | spacer(2) | middle(3) | spacer(4) | right(5). Two equal flexible spacers
    only center the middle when both sides are equally wide, so the wider side's width difference is
-   handed to the opposite spacer as its flex-basis. Measured only when the header resizes. */
+   handed to the opposite spacer as its flex-basis.
+   Discord re-renders the header several times while a channel loads (more on big servers), and every write
+   to the spacers triggers another layout, so: at most one measurement per frame, nothing written when the
+   result didn't change, and nothing to balance when no item sits in the middle. */
 
 const HEADER = ".chat_f75fb0 > .subtitleContainer_f75fb0 .upperContainer__9293f";
 
 let current: HTMLElement | null = null;
 let resizeObs: ResizeObserver | null = null;
 let childObs: MutationObserver | null = null;
+let frame = 0;
+let lastA = -1;
+let lastB = -1;
+
+function schedule() {
+    if (!frame) frame = requestAnimationFrame(() => {
+        frame = 0;
+        balance();
+    });
+}
 
 function flexItems(container: HTMLElement) {
     const out: Element[] = [];
@@ -26,18 +39,30 @@ function flexItems(container: HTMLElement) {
 
 function balance() {
     if (!current?.isConnected) return;
+
+    // read everything first, write once at the end (no layout thrashing)
     const gap = parseFloat(getComputedStyle(current).columnGap) || 0;
-    let left = 0, right = 0;
+    let left = 0, right = 0, middle = false;
     for (const el of flexItems(current)) {
         const cs = getComputedStyle(el);
         if (cs.display === "none") continue;
         const order = Number(cs.order);
+        if (order === 3) {
+            middle = true;
+            continue;
+        }
         const w = el.getBoundingClientRect().width + gap;
         if (order < 3) left += w;
-        else if (order > 3) right += w;
+        else right += w;
     }
-    current.style.setProperty("--dz-bal-a", `${Math.max(0, right - left)}px`);
-    current.style.setProperty("--dz-bal-b", `${Math.max(0, left - right)}px`);
+
+    const a = middle ? Math.round(Math.max(0, right - left)) : 0;
+    const b = middle ? Math.round(Math.max(0, left - right)) : 0;
+    if (Math.abs(a - lastA) <= 1 && Math.abs(b - lastB) <= 1) return;
+    lastA = a;
+    lastB = b;
+    current.style.setProperty("--dz-bal-a", `${a}px`);
+    current.style.setProperty("--dz-bal-b", `${b}px`);
 }
 
 function observeItems() {
@@ -49,14 +74,14 @@ function observeItems() {
 
 export function attachHeader() {
     const el = document.querySelector<HTMLElement>(HEADER);
-    if (el === current) return balance();
+    if (el === current) return schedule();
 
     detachHeader();
     if (!el) return;
 
     current = el;
-    resizeObs = new ResizeObserver(balance);
-    childObs = new MutationObserver(() => { observeItems(); balance(); });
+    resizeObs = new ResizeObserver(schedule);
+    childObs = new MutationObserver(() => { observeItems(); schedule(); });
     childObs.observe(el, { childList: true });
     const toolbar = el.querySelector(".toolbar__9293f");
     if (toolbar) childObs.observe(toolbar, { childList: true });
@@ -69,6 +94,9 @@ export function detachHeader() {
     childObs?.disconnect();
     resizeObs = childObs = null;
     current = null;
+    cancelAnimationFrame(frame);
+    frame = 0;
+    lastA = lastB = -1;
 }
 
 /* ================= header popouts open under their button =================

@@ -95,18 +95,25 @@ export const PRESETS: Preset[] = [
     },
 ];
 
+// "layout": where things sit. A preset can be applied with or without it; everything else is "theme".
+export const LAYOUT_KEYS = new Set([
+    "serverList", "channelsSide", "membersSide",
+    "headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch",
+]);
+
 export const presetValues = (p: Preset) => ({ ...BASE, ...p.values });
 
-export function applyPreset(p: Preset) {
+export function applyPreset(p: Preset, withLayout = true) {
     const store = settings.store as Record<string, unknown>;
-    for (const [k, v] of Object.entries(presetValues(p))) store[k] = v;
+    for (const [k, v] of Object.entries(presetValues(p))) if (withLayout || !LAYOUT_KEYS.has(k)) store[k] = v;
     store.presetId = p.id;
     refreshSettingsUi();
 }
 
+// "In use" = the preset's theme is on (with its layout or the user's own)
 export function presetMatches(p: Preset) {
     const store = settings.store as Record<string, unknown>;
-    return Object.entries(presetValues(p)).every(([k, v]) => typeof v === "string" && typeof store[k] === "string"
+    return Object.entries(presetValues(p)).every(([k, v]) => LAYOUT_KEYS.has(k) || (typeof v === "string" && typeof store[k] === "string"
         ? (store[k] as string).toLowerCase() === v.toLowerCase()
-        : store[k] === v);
+        : store[k] === v));
 }

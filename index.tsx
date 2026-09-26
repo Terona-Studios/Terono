@@ -386,7 +386,8 @@ export default definePlugin({
     connectionIconLoaded,
     RoleCount,
 
-    renderMessageAccessory: props => <AutoTranslate message={props.message} />,
+    // auto-translate is off by default: then no per-message hook at all (thousands of messages on big servers)
+    renderMessageAccessory: props => settings.store.autoTranslate ? <AutoTranslate message={props.message} /> : null,
 
     // theme presets, also reachable from the console: Vencord.Plugins.plugins.Terono.applyPresetById("crimson")
     presets: PRESETS,
