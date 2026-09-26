@@ -12,8 +12,12 @@ PLUGIN="$VENCORD/src/userplugins/terono"
 step() { printf '\n\033[36m> %s\033[0m\n' "$1"; }
 fail() { printf '\n\033[31m%s\033[0m\n' "$1"; exit 1; }
 
-command -v git >/dev/null || fail "git is required. Install it, then run this again."
-command -v node >/dev/null || fail "Node.js (LTS) is required: https://nodejs.org"
+# Git and Node.js are needed to build Vencord; on macOS they are installed with Homebrew when available
+for tool in git node; do
+  command -v "$tool" >/dev/null && continue
+  if command -v brew >/dev/null; then step "Installing $tool (needed once)"; brew install "$tool"
+  else fail "$tool is required. Install it with your package manager (for example: sudo apt install git nodejs npm), then run this again."; fi
+done
 
 mkdir -p "$DIR"
 

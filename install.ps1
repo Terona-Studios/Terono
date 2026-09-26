@@ -11,8 +11,15 @@ function Step($text) { Write-Host "`n> $text" -ForegroundColor Cyan }
 function Fail($text) { Write-Host "`n$text" -ForegroundColor Red; exit 1 }
 function Check($what) { if ($LASTEXITCODE -ne 0) { Fail "$what failed (exit code $LASTEXITCODE)." } }
 
-foreach ($tool in @(@("git", "https://git-scm.com/download/win"), @("node", "https://nodejs.org (LTS)"))) {
-    if (-not (Get-Command $tool[0] -ErrorAction SilentlyContinue)) { Fail "$($tool[0]) is required. Install it from $($tool[1]), then run this again." }
+# Git and Node.js are needed to build Vencord; install them with winget when missing
+$needed = @(@{ Cmd = "git"; Id = "Git.Git"; Url = "https://git-scm.com/download/win" }, @{ Cmd = "node"; Id = "OpenJS.NodeJS.LTS"; Url = "https://nodejs.org" })
+foreach ($t in $needed) {
+    if (Get-Command $t.Cmd -ErrorAction SilentlyContinue) { continue }
+    if (-not (Get-Command winget -ErrorAction SilentlyContinue)) { Fail "$($t.Cmd) is required. Install it from $($t.Url), then run this again." }
+    Step "Installing $($t.Cmd) (needed once)"
+    winget install --id $t.Id -e --silent --accept-source-agreements --accept-package-agreements
+    $env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+    if (-not (Get-Command $t.Cmd -ErrorAction SilentlyContinue)) { Fail "$($t.Cmd) was installed but is not available yet. Close this window and run the installer again." }
 }
 
 New-Item -ItemType Directory -Force $Dir | Out-Null

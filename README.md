@@ -6,13 +6,28 @@
 
 <p align="center">A fast, customizable Discord theme and Vencord plugin by <b>Terona Studios</b>.</p>
 
+<p align="center">
+  <img src="assets/screenshots/dark.png" alt="Terono, Dark cards" width="100%">
+</p>
+
+| Glass | White | Settings |
+| --- | --- | --- |
+| <img src="assets/screenshots/glass.png" alt="Terono, Glass cards"> | <img src="assets/screenshots/white.png" alt="Terono, White cards"> | <img src="assets/screenshots/settings.png" alt="Terono settings"> |
+
 ---
 
 ## Install
 
-### Theme + plugin (recommended)
+### Windows: download and double-click
 
-One command builds Vencord with the Terono plugin, installs it into Discord and turns on the theme. Run the same command again later to update.
+1. Download **[Install-Terono.cmd](https://github.com/Terona-Studios/Terono/releases/latest/download/Install-Terono.cmd)**.
+2. Double-click it. If Windows shows "Windows protected your PC", click **More info → Run anyway**.
+3. Wait until it says *Terono is installed*. Discord closes and reopens by itself.
+
+That's it. Open **Settings → Vencord → Plugins → Terono** to customize everything. To update later, run the same file again.
+
+<details>
+<summary>Prefer a command? (Windows PowerShell, macOS, Linux)</summary>
 
 **Windows** (PowerShell):
 
@@ -26,13 +41,13 @@ irm https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.ps1 | i
 curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.sh | bash
 ```
 
-You need [Git](https://git-scm.com/downloads) and [Node.js](https://nodejs.org/) (LTS) installed. The installer closes Discord while it works and opens it again at the end. Everything goes into a `Terono` folder in your home directory.
+</details>
 
-Then open **Settings → Vencord → Plugins → Terono** to customize everything.
+**What the installer does:** installs Git and Node.js if they're missing (Windows via winget, macOS via Homebrew), builds Vencord with the Terono plugin in a `Terono` folder in your home directory, installs it into Discord and turns on the plugin and theme. Your existing Vencord settings, themes and plugins are kept.
 
-> Third-party Vencord plugins can only be used with a Vencord build made on your PC. That's what the installer does for you. It replaces the normal Vencord install; your Vencord settings, themes and plugins are kept.
+> Why an installer? Vencord only runs third-party plugins from a build made on your own PC. The installer does that for you.
 
-### Theme only
+### Theme only (no plugin)
 
 Works on normal Vencord, no installer needed:
 
