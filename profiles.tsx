@@ -21,9 +21,9 @@ const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 const GROUPS: Record<string, { label: string; keys: string[]; }> = {
     colors: { label: "Colors", keys: ["accentPreset", "accent", "voice", "close", "minimize", "maximize"] },
-    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "textColor", "cardShape", "cardStyle", "glassOpacity", "glassBlur"] },
+    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "textColor", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
     background: { label: "Background", keys: ["background", "bgBase", "bgColor1", "bgColor2", "bgMediaSource", "bgMediaUrl", "bgMediaDim"] },
-    layout: { label: "Layout & logo", keys: ["serverList", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "lite"] },
+    layout: { label: "Layout & logo", keys: ["serverList", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite"] },
     header: { label: "Channel header", keys: ["headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch", "headerHiddenButtons"] },
     chat: { label: "Chat bar & activities", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities"] },
     menus: { label: "Menus", keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] },
@@ -52,7 +52,7 @@ function isValidValue(key: string, value: unknown) {
         case OptionType.COMPONENT: return typeof value === "string" && HEX_RE.test(value);
         case OptionType.STRING:
             if (typeof value !== "string" || value.length > 1000) return false;
-            return key !== "logoUrl" || value === "" || URL_RE.test(value);
+            return !/^(logoUrl|bgMediaUrl|cardMediaUrl)$/.test(key) || value === "" || URL_RE.test(value);
         default: return false;
     }
 }

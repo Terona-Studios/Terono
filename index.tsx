@@ -214,10 +214,20 @@ function onSettingsChange(value: unknown, path: string) {
 
 /* ================= migration from earlier versions ================= */
 
+const THEME_LINK = "https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css";
+
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
-    if (raw.dzVersion === 6) return;
+    if (raw.dzVersion === 7) return;
+    if (raw.dzVersion !== 6) await migrateLegacy(raw);
 
+    // first start: add the theme once (the browser extension has no installer to do it);
+    // removing it afterwards sticks
+    if (!Settings.themeLinks.includes(THEME_LINK)) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
+    raw.dzVersion = 7;
+}
+
+async function migrateLegacy(raw: Record<string, any>) {
     // settings from the old "Darkness" plugin name
     const old = Settings.plugins.Darkness as Record<string, any> | undefined;
     if (old && typeof old.dzVersion === "number" && raw.dzVersion === undefined) {
@@ -247,15 +257,15 @@ async function migrate() {
     else if (raw.serverList === "vertical") raw.serverList = "left";
 
     for (const k of ["homeLogo", "secondary", "animatedBackground", "gifFirst", "preset", "hideDmName"]) delete raw[k];
-    raw.dzVersion = 6;
 }
 
 /* ================= plugin ================= */
 
 export default definePlugin({
     name: "Terono",
-    description: "Companion for the Terono theme by Terona Studios: colors, cards, background, header layout, home logo, chat bar, activities, menu cleanup, auto-translate, profiles and a hub for the plugins it pairs with.",
+    description: "Companion for the Terono theme by Terona Studios: colors, cards, card media, background, layout, header, home logo, loading screens, chat bar, activities, menu cleanup, auto-translate, profiles and a hub for the plugins it pairs with.",
     authors: [{ name: "Terona Studios", id: 0n }],
+    enabledByDefault: true,
     settings,
 
     // "Start an Activity": conditional renders at the call sites (toggling never breaks hook order)

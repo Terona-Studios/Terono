@@ -48,6 +48,9 @@ function observeItems() {
 }
 
 export function attachHeader() {
+    // phones keep Discord's own header layout
+    if ("dzMobile" in document.documentElement.dataset) return detachHeader();
+
     const el = document.querySelector<HTMLElement>(HEADER);
     if (el === current) return balance();
 

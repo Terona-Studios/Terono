@@ -38,6 +38,8 @@ Every one of these is just a few clicks in **Settings → Vencord → Plugins �
 
 ## Install
 
+> New to this? The **[step-by-step tutorial](docs/TUTORIAL.md)** covers installing, every setting, profiles, updating, troubleshooting and uninstalling.
+
 ### Windows: download and double-click
 
 1. Download **[Install-Terono.cmd](https://github.com/Terona-Studios/Terono/releases/latest/download/Install-Terono.cmd)**.
@@ -67,6 +69,32 @@ curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.
 
 > Why an installer? Vencord only runs third-party plugins from a build made on your own PC. The installer does that for you.
 
+### Browser (Chrome, Brave, Edge, Opera, Firefox)
+
+1. Download **[Terono-Chromium.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Chromium.zip)** and unzip it (Firefox: **[Terono-Firefox.zip](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Firefox.zip)**, see the [tutorial](docs/TUTORIAL.md#firefox)).
+2. Open your browser's extensions page (`chrome://extensions`, `brave://extensions`, `edge://extensions`…) and turn on **Developer mode**.
+3. If you have the normal Vencord extension, switch it off (Terono's already includes Vencord).
+4. Click **Load unpacked**, pick the unzipped folder and refresh [discord.com/app](https://discord.com/app).
+
+Terono and its theme turn on by themselves.
+
+### Android
+
+Through **VendroidEnhanced**, an Android app that opens Discord with Vencord inside:
+
+1. Install [VendroidEnhanced](https://vendroid.nin0.dev/download) and log in.
+2. **User Settings → VendroidEnhanced → Other → Open developer settings**, and set **Vencord location** to:
+
+```
+https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Android.js
+```
+
+3. Close the app completely and open it again.
+
+Discord's own phone layout is kept (one column, ☰ menu); everything visual carries over. Details, a test checklist and how to switch back are in the [tutorial](docs/TUTORIAL.md#android).
+
+**iPhone:** not possible. There's no Vencord app for iPhone.
+
 ### Theme only (no plugin)
 
 Works on normal Vencord, no installer needed:
@@ -85,6 +113,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Profiles:** save your setup or parts of it, switch between looks, export and import them as files, reset to defaults.
 - **Colors:** primary color (presets or any color), voice/online color, window button colors.
 - **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid or glass, with opacity and blur.
+- **Card media:** your own image, GIF or video inside the panels, separate from the background.
 - **Background:** animated gradient, static gradient, solid color, or your own image, GIF or video.
 - **Fonts:** 22 built-in fonts or your own font file.
 - **Layout:** server list left, top, bottom or right. Channel list and member list/profile on either side.
@@ -94,6 +123,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Right-click menus:** hide any item by its name.
 - **Activities:** hide "Start an Activity" everywhere.
 - **Quick settings button** next to the back/forward arrows.
+- **Loading screens:** Terono logo and "Terono Discord" while Discord starts, updates and connects.
 - **Plugin hub:** turn on and set up related Vencord plugins (MessageLogger, ShowHiddenChannels, PinDMs and more) from one place.
 - **Performance mode** for slower PCs.
 

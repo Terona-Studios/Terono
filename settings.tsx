@@ -6,6 +6,7 @@
 
 import * as DataStore from "@api/DataStore";
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { OptionType } from "@utils/types";
@@ -23,6 +24,10 @@ export const LOGO_MAX_BYTES = 5 * 1024 * 1024;
 export const LOGO_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml"];
 export const LOGO_DATA_RE = /^data:image\/(png|jpeg|gif|webp|svg\+xml);base64,[A-Za-z0-9+/]+=*$/;
 export const HEX_RE = /^#[0-9a-f]{6}$/i;
+
+// Phones (phone browsers, VendroidEnhanced): Discord switches to its own one-column phone layout and opens/closes
+// the sidebar itself, so the desktop layout options (server list side, mirrored columns, header zones) stay off there.
+export const IS_MOBILE = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 export const URL_RE = /^https:\/\/[^\s"'()\\]+$/;
 
 export const ACCENTS: Record<string, string> = {
@@ -157,6 +162,7 @@ function LogoUpload() {
 /* ================= background media + custom font (files kept on this PC, IndexedDB) ================= */
 
 export const MEDIA_KEY = "Terono_bgMedia";
+export const CARD_MEDIA_KEY = "Terono_cardMedia";
 export const FONT_KEY = "Terono_customFont";
 const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
 const FONT_MAX_BYTES = 10 * 1024 * 1024;
@@ -165,14 +171,18 @@ const FONT_EXT = /\.(ttf|otf|woff2?)$/i;
 
 let mediaBlob: Blob | null = null;
 let mediaUrl: string | null = null;
+let cardBlob: Blob | null = null;
 let customFont: FontFace | null = null;
 
 export async function loadStoredFiles() {
     const media = await DataStore.get<Blob>(MEDIA_KEY);
     mediaBlob = media instanceof Blob && MEDIA_TYPES.includes(media.type) ? media : null;
+    const card = await DataStore.get<Blob>(CARD_MEDIA_KEY);
+    cardBlob = card instanceof Blob && MEDIA_TYPES.includes(card.type) ? card : null;
     const font = await DataStore.get<ArrayBuffer>(FONT_KEY);
     if (font instanceof ArrayBuffer) await registerFont(font);
     applyMedia();
+    applyCardMedia();
     applyFont();
 }
 
@@ -207,6 +217,16 @@ async function onMediaFile(file: File) {
     settings.store.bgMediaSource = "file";
     applyMedia();
     showToast("Background updated.", Toasts.Type.SUCCESS);
+}
+
+async function onCardMediaFile(file: File) {
+    if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
+    if (file.size > MEDIA_MAX_BYTES) return showToast("Card media must be 100 MB or smaller.", Toasts.Type.FAILURE);
+    cardBlob = file;
+    await DataStore.set(CARD_MEDIA_KEY, file);
+    settings.store.cardMedia = "file";
+    applyCardMedia();
+    showToast("Card media updated.", Toasts.Type.SUCCESS);
 }
 
 async function onFontFile(file: File) {
@@ -324,6 +344,36 @@ export const settings = definePluginSettings({
         hidden: () => settings.store.cardStyle !== "glass",
         onChange: () => applyVars(),
     },
+    cardMedia: {
+        type: OptionType.SELECT,
+        description: "Image, GIF or video inside the panels, separate from the app background. It runs across all panels as one picture with the card color laid over it. ⚠ GIFs and videos cost performance.",
+        options: [
+            { label: "None", value: "none", default: true },
+            { label: "URL", value: "url" },
+            { label: "File", value: "file" },
+        ],
+        onChange: () => applyAll(),
+    },
+    cardMediaUrl: {
+        type: OptionType.STRING,
+        description: "Direct link to an image, GIF or video (https) for the panels. The site must be allowed by Vencord (Discord CDN, imgur, GitHub, Tenor are).",
+        default: "",
+        hidden: () => settings.store.cardMedia !== "url",
+        isValid: (v: string) => v === "" || URL_RE.test(v) || "Must be a plain https:// link",
+    },
+    cardMediaFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.cardMedia !== "file",
+        component: () => <FileRow title="Card media file" note="PNG, JPG, GIF, WEBP, MP4 or WEBM up to 100 MB. Stored only on this PC." accept={MEDIA_TYPES.join(",")} onFile={onCardMediaFile} />,
+    },
+    cardMediaDim: {
+        type: OptionType.SLIDER,
+        description: "How much the card color covers the card media (%). Higher is easier to read.",
+        markers: [0, 20, 40, 60, 80, 95],
+        default: 60,
+        stickToMarkers: false,
+        hidden: () => settings.store.cardMedia === "none",
+    },
     glassBlur: {
         type: OptionType.BOOLEAN,
         description: "Blur behind glass panels. While blur is on the background animation pauses, because re-blurring a moving background every frame is what makes Discord lag.",
@@ -380,7 +430,7 @@ export const settings = definePluginSettings({
     /* --- layout --- */
     serverList: {
         type: OptionType.SELECT,
-        description: "Server list position.",
+        description: "Server list position. Phones always use Discord's own phone layout.",
         options: [
             { label: "Left (Discord default)", value: "left", default: true },
             { label: "Top (horizontal)", value: "top" },
@@ -489,6 +539,12 @@ export const settings = definePluginSettings({
         default: 72,
         stickToMarkers: false,
         onChange: () => applyVars(),
+    },
+    loadingScreen: {
+        type: OptionType.BOOLEAN,
+        description: "Terono loading screens: the Terono logo and name instead of Discord's while Discord starts, updates and connects. The updater window changes on the next start.",
+        default: true,
+        onChange: () => applyLoading(),
     },
     quickIcon: {
         type: OptionType.BOOLEAN,
@@ -631,11 +687,36 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: () => <PluginHub />,
     },
+
+    /* --- VendroidEnhanced (Android): the Terono build replaces its own, so offer the way back here --- */
+    vendroid: {
+        type: OptionType.COMPONENT,
+        hidden: () => !window.VencordMobileNative,
+        component: () => (
+            <div>
+                <HeadingTertiary>VendroidEnhanced</HeadingTertiary>
+                <Paragraph>Go back to VendroidEnhanced's normal build (removes Terono from this phone). Restart the app afterwards.</Paragraph>
+                <Button size="small" variant="secondary" style={{ marginTop: 6 }} onClick={() => {
+                    window.VencordMobileNative?.setString("vencordLocation", VENDROID_BUILD);
+                    showToast("Done. Close and reopen the app to finish.", Toasts.Type.SUCCESS);
+                }}>Use VendroidEnhanced's build</Button>
+            </div>
+        ),
+    },
 });
+
+const VENDROID_BUILD = "https://vde-builds.nin0.dev/vencord/browser.js";
+
+declare global {
+    interface Window {
+        // VendroidEnhanced's Android bridge (only exists inside that app)
+        VencordMobileNative?: { setString(key: string, value: string): void; };
+    }
+}
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "mobile", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, mobile: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -651,6 +732,11 @@ const pick = (id: ColorKey) => {
     const v = preview[id] ?? settings.store[id];
     return HEX_RE.test(v) ? v : COLOR_DEFAULTS[id];
 };
+
+function cardAlpha(s: typeof settings.store) {
+    if (cardActive) return Math.max(0, Number(s.cardMediaDim ?? 60));
+    return s.cardStyle === "glass" ? Number(s.glassOpacity) || 60 : 100;
+}
 
 // html:root out-specifies the theme's :root defaults regardless of load order
 export function applyVars() {
@@ -670,8 +756,8 @@ export function applyVars() {
     --dz-card-2: ${customCard && s.cardFill === "gradient" ? pick("cardColor2") : card};
     --dz-card-angle: ${Number(s.cardAngle) || 0}deg;
     --dz-text: ${customCard ? pick("textColor") : preset.text};
-    --dz-card-alpha: ${s.cardStyle === "glass" ? Number(s.glassOpacity) || 60 : 100}%;
-    --dz-float-alpha: ${s.cardStyle === "glass" ? Math.min(95, (Number(s.glassOpacity) || 60) + 20) : 100}%;
+    --dz-card-alpha: ${cardAlpha(s)}%;
+    --dz-float-alpha: ${cardAlpha(s) < 100 ? Math.min(95, cardAlpha(s) + 20) : 100}%;
     --dz-bg-dim: ${(Number(s.bgMediaDim) || 0) / 100};
     --dz-bg-base: ${pick("bgBase")};
     --dz-bg-1: ${pick("bgColor1")};
@@ -690,6 +776,46 @@ export function applyLogo() {
     const url = s.logoSource === "file" && uploadedLogo ? uploadedLogo
         : URL_RE.test(s.logoUrl) ? s.logoUrl : DEFAULT_LOGO;
     sheet("logo", `html:root { --dz-home-logo: url("${url}"); --dz-quick-icon: url("${TERONO_LOGO}"); }`);
+}
+
+/* ---------- "connecting" screen: Terono logo + name instead of Discord's spinner video ----------
+   Bundled (no network) so it's there on the first frame after start. The video stays in the page, just
+   invisible: Discord waits for it to load before it fades the screen out. */
+
+export function applyLoading() {
+    sheet("loading", !settings.store.loadingScreen ? "" : `
+html .container_a2f514 {
+    background: radial-gradient(60% 50% at 50% 40%, color-mix(in srgb, var(--dz-accent) 22%, transparent), transparent 70%), var(--dz-bg-base) !important;
+}
+html .container_a2f514 .spinner_a2f514 {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    opacity: 0 !important;
+    pointer-events: none;
+}
+html .container_a2f514 .content_a2f514::before {
+    content: "Terono Discord";
+    display: block;
+    padding-top: 168px;
+    margin-bottom: 28px;
+    background: url("${TERONO_LOGO}") top center / 144px 144px no-repeat;
+    color: var(--dz-text);
+    font: 800 28px/1.2 var(--font, "Figtree"), sans-serif;
+    letter-spacing: 0.02em;
+    text-align: center;
+    animation: dz-loading-float 2.4s ease-in-out infinite;
+}
+html .container_a2f514 .tipTitle_a2f514 {
+    color: var(--dz-accent) !important;
+}
+@keyframes dz-loading-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    html .container_a2f514 .content_a2f514::before { animation: none; }
+}`);
 }
 
 const CHAT_BUTTONS: [string, string][] = [
@@ -727,6 +853,9 @@ export function applyHeader() {
     ].filter(Boolean).map(sel => `html[data-dz-dm] ${sel}`);
     const hide = [...words.map(w => `.title_f75fb0 .toolbar__9293f > [aria-label*="${w}" i]`), ...serverHide, ...dmHide];
 
+    // phones: Discord's phone header is just the menu button, the channel name and the member list button; keep it as is
+    if (IS_MOBILE) return sheet("header", "");
+
     sheet("header", `html:root {
     --dz-h-name: ${ZONE[s.headerName] ?? 1};
     --dz-h-buttons: ${ZONE[s.headerButtons] ?? 1};
@@ -741,6 +870,30 @@ html[data-dz-dm]:root {
     requestAnimationFrame(attachHeader);
 }
 
+// phones: the visible column gets the same gap on both sides (the desktop layout only pads the side next to the members),
+// the member list (full width on phones, over the chat) drops its desktop gap, and the fade after the channel name
+// (taller than the phone header) is hidden
+const MOBILE_CSS = `
+html[data-dz-mobile] .page__5e434 {
+    padding-left: var(--gap) !important;
+    padding-right: var(--gap) !important;
+}
+html[data-dz-mobile] .content_f75fb0 > .container_c8ffbb,
+html[data-dz-mobile] .content_f75fb0 > .container_c8ffbb > .membersWrap_c8ffbb {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+}
+html[data-dz-mobile] .content_f75fb0:has(> .container_c8ffbb) > .chatContent_f75fb0 {
+    display: none;
+}
+html[data-dz-mobile] .membersWrap_c8ffbb .members_c8ffbb {
+    padding-left: 8px;
+}
+html[data-dz-mobile] .title_f75fb0 .children__9293f::after {
+    display: none;
+}`;
+
 // attributes, not classes: Discord rewrites <html class> on theme changes
 export function applyAttrs() {
     const s = settings.store;
@@ -750,17 +903,20 @@ export function applyAttrs() {
     d.dzPlugin = "";
     d.dzBg = s.background;
     d.dzCardFill = s.cardPreset === "custom" ? s.cardFill : "solid";
-    d.dzGuilds = s.serverList;
-    d.dzChannels = s.channelsSide;
-    d.dzMembers = s.membersSide;
-    flag("dzGlass", s.cardStyle === "glass");
+    d.dzGuilds = IS_MOBILE ? "left" : s.serverList;
+    d.dzChannels = IS_MOBILE ? "left" : s.channelsSide;
+    d.dzMembers = IS_MOBILE ? "right" : s.membersSide;
+    flag("dzMobile", IS_MOBILE);
+    flag("dzGlass", s.cardStyle === "glass" || cardActive);
+    flag("dzCardMedia", cardActive);
     flag("dzGlassBlur", s.cardStyle === "glass" && s.glassBlur);
     flag("dzActivities", s.showActivities);
     flag("dzLite", s.lite);
     flag("dzQuick", s.quickIcon);
 
     // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
-    sheet("hsl", s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
+    sheet("mobile", IS_MOBILE ? MOBILE_CSS : "");
+    sheet("hsl", IS_MOBILE ? "" : s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
 }
 
 /* ---------- fonts ---------- */
@@ -799,8 +955,9 @@ function probeUrl(url: string) {
 
     const done = (kind: "image" | "video" | "fail") => {
         probed.set(url, kind);
-        if (kind === "fail") showToast("Background couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
+        if (kind === "fail") showToast("Image / video couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
         applyMedia();
+        applyCardMedia();
     };
     const tryVideo = () => {
         const v = document.createElement("video");
@@ -825,9 +982,116 @@ function attachVideo() {
 }
 
 function onVisibility() {
-    if (!videoEl) return;
-    if (document.hidden) videoEl.pause();
-    else videoEl.play().catch(() => { });
+    for (const v of [videoEl, cardLayer?.querySelector("video")]) {
+        if (!v) continue;
+        if (document.hidden) v.pause();
+        else v.play().catch(() => { });
+    }
+    updateCardClip();
+}
+
+/* ---------- card image / GIF / video ----------
+   One full-window layer right above the app background, clipped to the outline of every panel, so the media
+   runs across all panels as one picture (like the gradient fill) and stays out of the gaps between them. */
+
+const CARD_SEL = [
+    ".guilds__5e434", ".sidebarList__5e434", ".panels__5e434", ".chat_f75fb0 > .subtitleContainer_f75fb0", ".chatContent_f75fb0",
+    ".container_c8ffbb", ".container__133bf > .container__9293f", ".peopleColumn__133bf", ".nowPlayingColumn__133bf",
+    ".searchResultsWrap_a98f3b", ".container_f369db", ".chat_fb64c9", ".callContainer_cb9592", ".container_f391e3 > .content_f75fb0",
+    ".shop__6db1d", ".content_f75fb0 > aside > .outer_c0bea0:not(.custom-theme-background)",
+].join(",");
+
+let cardActive = false;
+let cardLayer: HTMLDivElement | null = null;
+let cardUrl: string | null = null;
+let cardTimer = 0;
+let cardPath = "";
+
+function cardOutline() {
+    const base = cardLayer!.getBoundingClientRect();
+    const n = (v: number) => Math.round(v * 10) / 10;
+    let d = "";
+    for (const el of document.querySelectorAll<HTMLElement>(CARD_SEL)) {
+        const b = el.getBoundingClientRect();
+        if (b.width < 2 || b.height < 2) continue;
+        const x = n(b.left - base.left), y = n(b.top - base.top), w = n(b.width), h = n(b.height);
+        const r = n(Math.min(parseFloat(getComputedStyle(el).borderTopLeftRadius) || 0, w / 2, h / 2));
+        // clockwise rounded rect; same winding everywhere so overlapping panels add up instead of cutting holes
+        d += `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}`
+            + `H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+    }
+    return d;
+}
+
+function updateCardClip() {
+    if (!cardLayer) return;
+    const bg = document.querySelector("#app-mount .bg__960e4");
+    if (bg && cardLayer.previousElementSibling !== bg) bg.after(cardLayer);
+    if (document.hidden) return;
+    const d = cardOutline();
+    if (d === cardPath) return;
+    cardPath = d;
+    cardLayer.style.clipPath = d ? `path("${d}")` : "inset(50%)";
+}
+
+function removeCardLayer() {
+    cardLayer?.remove();
+    cardLayer = null;
+    cardPath = "";
+    clearInterval(cardTimer);
+    window.removeEventListener("resize", updateCardClip);
+}
+
+export function applyCardMedia() {
+    const s = settings.store;
+    const fromFile = s.cardMedia === "file";
+
+    if (cardUrl && !(fromFile && cardBlob)) {
+        URL.revokeObjectURL(cardUrl);
+        cardUrl = null;
+    }
+    let src = "";
+    let isVideo = false;
+    if (fromFile && cardBlob) {
+        cardUrl ??= URL.createObjectURL(cardBlob);
+        src = cardUrl;
+        isVideo = cardBlob.type.startsWith("video/");
+    } else if (s.cardMedia === "url" && URL_RE.test(s.cardMediaUrl)) {
+        const kind = probeUrl(s.cardMediaUrl);
+        if (kind === "image" || kind === "video") {
+            src = s.cardMediaUrl;
+            isVideo = kind === "video";
+        }
+    }
+
+    // panels only turn see-through once there is something to show in them
+    if (!!src !== cardActive) {
+        cardActive = !!src;
+        applyAttrs();
+        applyVars();
+    }
+    if (!src) return removeCardLayer();
+
+    if (!cardLayer) {
+        cardLayer = document.createElement("div");
+        cardLayer.className = "dz-card-media";
+        cardLayer.style.cssText = "position:absolute;inset:0;overflow:hidden;pointer-events:none;clip-path:inset(50%)";
+        cardTimer = window.setInterval(updateCardClip, 250);
+        window.addEventListener("resize", updateCardClip);
+        document.addEventListener("visibilitychange", onVisibility);
+    }
+    let media = cardLayer.firstElementChild as HTMLImageElement | HTMLVideoElement | null;
+    if (media?.tagName !== (isVideo ? "VIDEO" : "IMG")) {
+        media?.remove();
+        media = document.createElement(isVideo ? "video" : "img");
+        if (media instanceof HTMLVideoElement) Object.assign(media, { muted: true, loop: true, autoplay: true, playsInline: true });
+        else Object.assign(media, { alt: "", decoding: "async" });
+        media.style.cssText = "display:block;width:100%;height:100%;object-fit:cover";
+        cardLayer.append(media);
+    }
+    if (media.src !== src) media.src = src;
+    if (media instanceof HTMLVideoElement) media.play().catch(() => { });
+    updateCardClip();
 }
 
 export function applyMedia() {
@@ -911,9 +1175,15 @@ export function applyAll() {
     applyHeader();
     applyFont();
     applyMedia();
+    applyCardMedia();
+    applyLoading();
 }
 
 export function removeAll() {
+    removeCardLayer();
+    cardActive = false;
+    if (cardUrl) URL.revokeObjectURL(cardUrl);
+    cardUrl = null;
     videoEl?.remove();
     videoEl = null;
     bgObserver?.disconnect();
@@ -928,5 +1198,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzMobile"]) delete d[k];
 }
