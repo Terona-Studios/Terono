@@ -21,11 +21,29 @@ done
 
 mkdir -p "$DIR"
 
+# Existing download: fetch the newest version and reset to it. Missing or damaged: download it fresh.
+# The Terono folder sits inside the Vencord download; if its own .git is damaged git silently uses Vencord's,
+# so only a folder that is its own repository root with the expected source counts.
+sync() {
+  url="$1"; path="$2"
+  if [ -d "$path/.git" ]; then
+    top="$(git -C "$path" rev-parse --show-toplevel 2>/dev/null || true)"
+    origin="$(git -C "$path" remote get-url origin 2>/dev/null || true)"
+    if [ -n "$top" ] && [ "$(cd "$top" && pwd -P)" = "$(cd "$path" && pwd -P)" ] && [ "${origin%.git}" = "$url" ] \
+      && git -C "$path" fetch --depth 1 origin main && git -C "$path" reset --hard FETCH_HEAD; then
+      return
+    fi
+    printf '\033[33mThe download folder is damaged, downloading it again.\033[0m\n'
+  fi
+  rm -rf "$path"
+  git clone --depth 1 "$url" "$path"
+}
+
 step "Getting Vencord"
-if [ -d "$VENCORD/.git" ]; then git -C "$VENCORD" pull --ff-only; else git clone --depth 1 https://github.com/Vendicated/Vencord "$VENCORD"; fi
+sync https://github.com/Vendicated/Vencord "$VENCORD"
 
 step "Getting Terono"
-if [ -d "$PLUGIN/.git" ]; then git -C "$PLUGIN" pull --ff-only; else git clone --depth 1 https://github.com/Terona-Studios/Terono "$PLUGIN"; fi
+sync https://github.com/Terona-Studios/Terono "$PLUGIN"
 
 cd "$VENCORD"
 PNPM="$(node -p 'require("./package.json").packageManager')"

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Build: dotnet build -c Release  ->  bin\Release\net48\Terono-Setup.exe
+       .NET Framework 4.8 ships with Windows 10 and 11, so the exe runs without installing anything. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Terono-Setup</AssemblyName>
+    <RootNamespace>TeronoSetup</RootNamespace>
+    <ApplicationIcon>terono.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+
+    <!-- shown in the file's Properties > Details -->
+    <Company>Terona Studios</Company>
+    <Authors>Terona Studios</Authors>
+    <Product>Terono</Product>
+    <AssemblyTitle>Terono Setup</AssemblyTitle>
+    <Description>Installs and updates the Terono theme and plugin for Discord (Vencord).</Description>
+    <Copyright>Copyright © 2026 Terona Studios</Copyright>
+    <Version>12.5.0</Version>
+    <FileVersion>12.5.0.0</FileVersion>
+    <InformationalVersion>12.5.0</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

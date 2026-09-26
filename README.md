@@ -42,22 +42,18 @@ Every one of these is just a few clicks in **Settings → Vencord → Plugins �
 
 ### Windows: download and double-click
 
-1. Download **[Install-Terono.cmd](https://github.com/Terona-Studios/Terono/releases/latest/download/Install-Terono.cmd)**.
-2. Double-click it. If Windows shows "Windows protected your PC", click **More info → Run anyway**.
+1. Download **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)**.
+2. Double-click it. The file isn't code-signed yet, so Windows may show *"Windows protected your PC"*: click **More info → Run anyway**.
 3. Wait until it says *Terono is installed*. Discord closes and reopens by itself.
 
 That's it. Open **Settings → Vencord → Plugins → Terono** to customize everything. To update later, run the same file again.
 
+Terono Setup is a small open-source program by Terona Studios (right-click → **Properties → Details** shows it). Its whole source is in [installer/](installer/). It only runs git, Node.js and Vencord's own installer, and writes what it does to `%TEMP%\Terono-Setup.log`.
+
 <details>
-<summary>Prefer a command? (Windows PowerShell, macOS, Linux)</summary>
+<summary>macOS / Linux</summary>
 
-**Windows** (PowerShell):
-
-```powershell
-irm https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.ps1 | iex
-```
-
-**macOS / Linux** (terminal):
+In a terminal:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Terona-Studios/Terono/main/install.sh | bash
@@ -112,7 +108,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 
 ## Updating
 
-Run the install command again. Or, if you installed by hand:
+Run **Terono-Setup.exe** again (macOS / Linux: the install command). Or, if you installed by hand:
 
 ```bash
 git -C src/userplugins/terono pull

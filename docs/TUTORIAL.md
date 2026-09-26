@@ -19,7 +19,7 @@ Everything from installing to building your own look, step by step.
 
 | You use Discord in... | Do this |
 | --- | --- |
-| The Discord app on **Windows** | [Double-click installer](#windows) |
+| The Discord app on **Windows** | [Terono-Setup.exe](#windows) |
 | The Discord app on **macOS / Linux** | [One command](#macos--linux) |
 | **Chrome, Brave, Edge, Opera, Vivaldi** | [Browser extension](#chrome-brave-edge-opera-vivaldi) |
 | **Firefox** | [Firefox add-on](#firefox) |
@@ -31,10 +31,12 @@ Everything from installing to building your own look, step by step.
 
 ### Windows
 
-1. Download **[Install-Terono.cmd](https://github.com/Terona-Studios/Terono/releases/latest/download/Install-Terono.cmd)**.
-2. Double-click it. If Windows says *"Windows protected your PC"*, click **More info → Run anyway**.
+1. Download **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)**.
+2. Double-click it. The file isn't code-signed yet, so Windows may say *"Windows protected your PC"*: click **More info → Run anyway**.
 3. Wait for the green *Terono is installed* line. The first run takes a few minutes because it downloads Git and Node.js if you don't have them.
 4. Discord closes and opens again with Terono on.
+
+To check the file: right-click it → **Properties → Details** shows *Terono Setup* by *Terona Studios*. If something goes wrong, the steps it took are in `%TEMP%\Terono-Setup.log`.
 
 ### macOS / Linux
 
@@ -218,7 +220,7 @@ On a slow PC or a laptop on battery, turn on **Lite** (performance mode). It sto
 
 ## 8. Updating
 
-- **Discord app:** run the installer again (the same `Install-Terono.cmd` or command). It downloads the newest Terono and Vencord and rebuilds.
+- **Discord app:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
   2. Replace the files in your folder.
@@ -228,6 +230,9 @@ On a slow PC or a laptop on battery, turn on **Lite** (performance mode). It sto
 ---
 
 ## 9. Troubleshooting
+
+**My antivirus flagged `Install-Terono.cmd`.**
+That was the old installer. It downloaded and ran a PowerShell script in one go, which Windows Defender treats as suspicious (`Trojan:Win32/Commando.A!ml`), even though the script itself was harmless. Delete it and use **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** instead. It updates the same install, so your settings are kept.
 
 **Terono disappeared after a Discord update (app).**
 Discord's big updates sometimes remove Vencord. Run the installer again; your settings are kept.

@@ -24,12 +24,30 @@ foreach ($t in $needed) {
 
 New-Item -ItemType Directory -Force $Dir | Out-Null
 
+# Existing download: fetch the newest version and reset to it. Missing or damaged: download it fresh.
+# The Terono folder sits inside the Vencord download; if its own .git is damaged git silently uses Vencord's,
+# so only a folder that is its own repository root with the expected source counts.
+function Sync($url, $path) {
+    if (Test-Path (Join-Path $path ".git")) {
+        $top = git -C $path rev-parse --show-toplevel 2>$null
+        $origin = git -C $path remote get-url origin 2>$null
+        $same = $top -and ((Resolve-Path $top).Path.TrimEnd("\") -eq (Resolve-Path $path).Path.TrimEnd("\")) -and ($origin -replace "\.git$", "") -eq $url
+        if ($same) {
+            git -C $path fetch --depth 1 origin main
+            if ($LASTEXITCODE -eq 0) { git -C $path reset --hard FETCH_HEAD; if ($LASTEXITCODE -eq 0) { return } }
+        }
+        Write-Host "The download folder is damaged, downloading it again." -ForegroundColor Yellow
+    }
+    if (Test-Path $path) { Remove-Item -Recurse -Force $path }
+    git clone --depth 1 $url $path
+}
+
 Step "Getting Vencord"
-if (Test-Path (Join-Path $Vencord ".git")) { git -C $Vencord pull --ff-only } else { git clone --depth 1 https://github.com/Vendicated/Vencord $Vencord }
+Sync "https://github.com/Vendicated/Vencord" $Vencord
 Check "Downloading Vencord"
 
 Step "Getting Terono"
-if (Test-Path (Join-Path $Plugin ".git")) { git -C $Plugin pull --ff-only } else { git clone --depth 1 https://github.com/Terona-Studios/Terono $Plugin }
+Sync "https://github.com/Terona-Studios/Terono" $Plugin
 Check "Downloading Terono"
 
 Push-Location $Vencord
