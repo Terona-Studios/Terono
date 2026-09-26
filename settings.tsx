@@ -16,6 +16,7 @@ import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { PluginHub } from "./hub";
 import { ProfilesPanel } from "./profiles";
+import { UpdatePanel } from "./updater";
 
 export const DEFAULT_LOGO = TERONO_LOGO;
 export const LOGO_KEY = "Terono_homeLogo";
@@ -251,6 +252,21 @@ const FONTS: Record<string, string> = {
 const custom = (key: "accentPreset" | "cardPreset") => () => settings.store[key] !== "custom";
 
 export const settings = definePluginSettings({
+    updates: {
+        type: OptionType.COMPONENT,
+        component: () => <UpdatePanel />,
+    },
+    autoUpdateCheck: {
+        type: OptionType.BOOLEAN,
+        description: "Check for Terono updates when Discord starts (and every few hours) and show a notification when one is out.",
+        default: true,
+    },
+    lastVersion: {
+        type: OptionType.STRING,
+        description: "Terono version that last ran (shows the \"updated\" message once after an update).",
+        default: "",
+        hidden: true,
+    },
     profiles: {
         type: OptionType.COMPONENT,
         component: () => <ProfilesPanel />,

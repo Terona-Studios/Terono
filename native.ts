@@ -5,9 +5,36 @@
  */
 
 import { RendererSettings } from "@main/settings";
-import { app } from "electron";
+import { app, IpcMainInvokeEvent } from "electron";
+import { join } from "path";
 
 import { TERONO_LOGO } from "./assets";
+import { canUpdate, getState, latestRelease, startUpdate } from "./update";
+
+/* ================= in-app updater (called from the settings through VencordNative.pluginHelpers.Terono) ================= */
+
+// the Vencord checkout this Discord runs from: dist/ (where this file is built to) sits next to src/
+const ROOT = join(__dirname, "..");
+
+export async function checkUpdate(_: IpcMainInvokeEvent) {
+    const [release, updatable] = await Promise.all([latestRelease(), canUpdate(ROOT)]);
+    return { ...release, canUpdate: updatable.ok, reason: updatable.reason };
+}
+
+export function beginUpdate(_: IpcMainInvokeEvent, version: string) {
+    return startUpdate(ROOT, String(version));
+}
+
+export function updateState(_: IpcMainInvokeEvent) {
+    return getState();
+}
+
+export function restartDiscord(_: IpcMainInvokeEvent) {
+    app.relaunch();
+    app.exit(0);
+}
+
+/* ================= updater window ================= */
 
 // Discord's updater ("Checking for updates…") is a separate 300×300 window that Vencord doesn't load into,
 // so restyle it from the main process: Terono logo + name instead of Discord's animated logo.

@@ -20,6 +20,8 @@ import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpa
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
+import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
+import { VERSION } from "./version";
 
 /* ================= quick settings icon + header popouts =================
    The icon is a CSS ::after on the back/forward group (survives every re-render); a click on the
@@ -244,8 +246,8 @@ function onSettingsChange(value: unknown, path: string) {
 
 // The theme is loaded from the release tag that matches this plugin, not from @main: jsDelivr caches @main for up
 // to 12 hours, so theme fixes reached people late and the theme could be newer or older than the plugin.
-// Bump together with the release tag.
-const THEME_VERSION = "v12.4.0";
+// The tag is v + VERSION (version.ts), bumped together with each release.
+const THEME_VERSION = `v${VERSION}`;
 const THEME_LINK = `https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@${THEME_VERSION}/theme/Terono.theme.css`;
 const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
 
@@ -400,6 +402,10 @@ export default definePlugin({
         addGlobalContextMenuPatch(menuPatch);
         document.addEventListener("click", onDocClick, true);
         syncChannelKind(SelectedChannelStore.getChannelId());
+
+        announceUpdated(settings.store.lastVersion);
+        settings.store.lastVersion = VERSION;
+        startAutoCheck(() => settings.store.autoUpdateCheck);
     },
 
     stop() {
@@ -411,6 +417,7 @@ export default definePlugin({
         badgeStyle = null;
         document.removeEventListener("click", onDocClick, true);
         detachHeader();
+        stopAutoCheck();
         removeAll();
     },
 });

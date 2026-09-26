@@ -220,7 +220,8 @@ On a slow PC or a laptop on battery, turn on **Lite** (performance mode). It sto
 
 ## 8. Updating
 
-- **Discord app:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
+- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. Terono also checks by itself when Discord starts and every few hours, and shows a notification when an update is out. Turn that off with **Auto Update Check**.
+- **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).
   2. Replace the files in your folder.

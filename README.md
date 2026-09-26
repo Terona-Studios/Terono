@@ -103,12 +103,15 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Activities:** hide "Start an Activity" everywhere.
 - **Quick settings button** next to the back/forward arrows.
 - **Loading screens:** Terono logo and "Terono Discord" while Discord starts, updates and connects.
+- **Updates inside Discord:** check for a new version, update and restart without leaving Discord.
 - **Plugin hub:** turn on and set up related Vencord plugins (MessageLogger, ShowHiddenChannels, PinDMs and more) from one place.
 - **Performance mode** for slower PCs.
 
 ## Updating
 
-Run **Terono-Setup.exe** again (macOS / Linux: the install command). Or, if you installed by hand:
+**In Discord:** Settings → Vencord → Plugins → Terono → **Check for updates** at the top. When a new version is out, click **Update**, wait for the update screen to finish and click **Restart Discord**. Terono also checks by itself when Discord starts and shows a notification.
+
+Or run **Terono-Setup.exe** again (macOS / Linux: the install command). If you installed by hand:
 
 ```bash
 git -C src/userplugins/terono pull
