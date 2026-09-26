@@ -82,7 +82,7 @@ export function UpdatePanel() {
             : newer ? (Native
                 ? (info!.canUpdate ? `Terono ${newer} is out.` : `Terono ${newer} is out. ${info!.reason ?? ""}`)
                 : `Terono ${newer} is out. Download the new browser zip and replace the files in your Terono folder.`)
-                : info ? "You're on the latest version." : "See if a new Terono release is out.";
+                : info ? "✓ You're on the latest version." : "See if a new Terono release is out.";
 
     return (
         <div className="dz-upd-panel">
