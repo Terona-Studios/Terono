@@ -5,6 +5,7 @@
  */
 
 import { showNotification } from "@api/Notifications";
+import { useSettings } from "@api/Settings";
 import { Button } from "@components/Button";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
@@ -13,6 +14,7 @@ import { createRoot, showToast, Toasts, useEffect, useState } from "@webpack/com
 import type { CSSProperties } from "react";
 
 import { TERONO_LOGO } from "./assets";
+import { pluginsWaitingForRestart } from "./hub";
 import type { UpdateState } from "./update";
 import { VERSION } from "./version";
 
@@ -65,10 +67,15 @@ const plainNotes = (md: string) => md
 
 /* ================= settings panel ================= */
 
+// plugins switched on or off (here or in Vencord's list) re-render the box; a stable array keeps one listener
+const PLUGIN_PATHS = ["plugins.*"] as const;
+
 export function UpdatePanel() {
     const [info, setInfo] = useState<UpdateInfo | null>(lastInfo);
     const [busy, setBusy] = useState(false);
     useEffect(ensureCss, []);
+    useSettings(PLUGIN_PATHS as any);
+    const waiting = pluginsWaitingForRestart();
 
     const run = async () => {
         setBusy(true);
@@ -97,6 +104,12 @@ export function UpdatePanel() {
                 {!newer && <Button size="small" variant="secondary" disabled={busy} onClick={run}>{busy ? "Checking…" : "Check for updates"}</Button>}
             </div>
             {newer && info!.notes && <pre className="dz-upd-notes">{plainNotes(info!.notes)}</pre>}
+            {waiting.length > 0 && (
+                <div className="dz-upd-restart">
+                    <span>Restart to apply: <b>{waiting.join(", ")}</b></span>
+                    <Button size="small" onClick={() => location.reload()}>Restart Discord</Button>
+                </div>
+            )}
         </div>
     );
 }
@@ -273,6 +286,10 @@ const CSS = `
 .dz-upd-row { display: flex; align-items: center; gap: 14px; }
 .dz-upd-panel-logo { width: 40px; height: 40px; flex: none; }
 .dz-upd-new { color: var(--dz-accent, #429cff) !important; font-weight: 600; }
+.dz-upd-restart { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.4;
+    color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-accent, #429cff) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dz-accent, #429cff) 30%, transparent); animation: dz-upd-fade 200ms ease both; }
+.dz-upd-restart > span { flex: 1; min-width: 0; }
 .dz-upd-notes { margin: 0; padding: 10px 12px; max-height: 150px; overflow: auto; border-radius: 10px; background: rgb(0 0 0 / 22%);
     font: 12px/1.5 var(--font-primary, "gg sans", sans-serif); white-space: pre-wrap; color: color-mix(in srgb, var(--dz-text, #f1f2f4) 75%, transparent); }
 

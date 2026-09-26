@@ -21,9 +21,10 @@ export interface Preset {
 const BASE: Record<string, string | number | boolean> = {
     accentPreset: "blue", accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
     cardPreset: "dark", cardFill: "solid", cardColor: "#070708", cardColor2: "#0b1a33", cardAngle: 135, textColor: "#f1f2f4",
+    customText: false, customIcons: false,
     cardShape: "curved", cardStyle: "solid", glassOpacity: 60, glassBlur: true, cardMedia: "none", cardMediaDim: 60,
     background: "animated", bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
-    serverList: "top", channelsSide: "left", membersSide: "right",
+    serverList: "top", serverListDirection: "ltr", channelsSide: "left", membersSide: "right",
     headerName: "left", headerHash: true, headerFollow: false, headerButtons: "left", headerSearch: "right",
     dmHeaderName: "hidden", dmHeaderButtons: "left", dmHeaderSearch: "right",
     font: "terono", roleCount: "paren", roleCountCustom: "(%users%)",
@@ -72,7 +73,7 @@ export const PRESETS: Preset[] = [
         description: "Teal to indigo gradient cards with a teal accent, Plus Jakarta Sans.",
         values: {
             accentPreset: "custom", accent: "#2de2c8", cardPreset: "custom", cardFill: "gradient", cardColor: "#062a33", cardColor2: "#1b1145",
-            cardAngle: 135, textColor: "#e8fbf8", cardShape: "soft", bgBase: "#02070a", bgColor1: "#1fb8a8", bgColor2: "#3a1d8a", font: "jakarta", roleCount: "bracket",
+            cardAngle: 135, customText: true, textColor: "#e8fbf8", cardShape: "soft", bgBase: "#02070a", bgColor1: "#1fb8a8", bgColor2: "#3a1d8a", font: "jakarta", roleCount: "bracket",
         },
     },
     {
@@ -97,16 +98,23 @@ export const PRESETS: Preset[] = [
 
 // "layout": where things sit. A preset can be applied with or without it; everything else is "theme".
 export const LAYOUT_KEYS = new Set([
-    "serverList", "channelsSide", "membersSide",
+    "serverList", "serverListDirection", "channelsSide", "membersSide",
     "headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch",
 ]);
 
 export const presetValues = (p: Preset) => ({ ...BASE, ...p.values });
 
-export function applyPreset(p: Preset, withLayout = true) {
+// every option a preset can change
+export const PRESET_KEYS = Object.keys(BASE);
+
+export function writePresetValues(p: Preset, withLayout: boolean) {
     const store = settings.store as Record<string, unknown>;
     for (const [k, v] of Object.entries(presetValues(p))) if (withLayout || !LAYOUT_KEYS.has(k)) store[k] = v;
-    store.presetId = p.id;
+}
+
+export function applyPreset(p: Preset, withLayout = true) {
+    writePresetValues(p, withLayout);
+    (settings.store as Record<string, unknown>).presetId = p.id;
     refreshSettingsUi();
 }
 

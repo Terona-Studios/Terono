@@ -8,13 +8,16 @@
 // setting (so profiles, reset and live apply work as before); this only decides where each one is shown, and
 // draws it with Vencord's own setting controls.
 
+import { useSettings } from "@api/Settings";
 import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import { OptionComponentMap } from "@components/settings/tabs/plugins/components";
 import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
-import { applyPreset, Preset, presetMatches, PRESETS,presetValues } from "./presets";
-import { settings, useSettingsRevision } from "./settings";
+import { PluginHub } from "./hub";
+import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./presets";
+import { startPreview } from "./preview";
+import { loadFontPreviews, settings, useSettingsRevision } from "./settings";
 import { UpdatePanel } from "./updater";
 import { VERSION } from "./version";
 
@@ -24,16 +27,18 @@ interface Tab { id: string; label: string; intro: string; groups?: Group[]; }
 const TABS: Tab[] = [
     { id: "presets", label: "Presets", intro: "Complete looks in one click. Apply one, then change anything you like in the other tabs." },
     {
-        id: "colors", label: "Colors", intro: "The primary color used for buttons, links, mentions and glow, plus status and window colors.",
+        id: "colors", label: "Colors", intro: "The primary color used for buttons, links, mentions and glow, text and icon colors, plus status and window colors.",
         groups: [
             { title: "Primary color", keys: ["accentPreset", "accent"] },
+            { title: "Text", keys: ["customText", "textColor"] },
+            { title: "Icons", keys: ["customIcons", "iconColor"] },
             { title: "Status & window buttons", keys: ["voice", "close", "minimize", "maximize"] },
         ],
     },
     {
         id: "cards", label: "Cards", intro: "The panels: their color, corners, glass effect and an optional picture or video inside them.",
         groups: [
-            { title: "Card colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "textColor"] },
+            { title: "Card colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle"] },
             { title: "Shape & material", keys: ["cardShape", "cardStyle", "glassOpacity", "glassBlur"] },
             { title: "Picture or video in the cards", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
         ],
@@ -48,7 +53,7 @@ const TABS: Tab[] = [
     },
     {
         id: "layout", label: "Layout", intro: "Where the server list, channel list and member list sit.",
-        groups: [{ keys: ["serverList", "channelsSide", "membersSide"] }],
+        groups: [{ keys: ["serverList", "serverListDirection", "channelsSide", "membersSide"] }],
     },
     {
         id: "header", label: "Header", intro: "The bar above the chat: channel name, buttons and search, separately for servers and DMs.",
@@ -87,18 +92,27 @@ const TABS: Tab[] = [
         ],
     },
     { id: "profiles", label: "Profiles", intro: "Save your look, switch between saved looks, share them as files.", groups: [{ keys: ["profiles"] }] },
-    { id: "plugins", label: "Plugins", intro: "Vencord plugins that go well with Terono, in one place.", groups: [{ keys: ["pluginHub"] }] },
+    {
+        id: "plugins", label: "Plugins",
+        intro: "Official Vencord plugins that go well with Terono, switched on and set up in one place. Vencord keeps them up to date. Plugins that change Discord's code apply after a restart, which the Updates box above offers.",
+    },
 ];
 
 let lastTab = "presets";
+
+// only this plugin's settings (a stable array: a new one every render would re-subscribe every render)
+const TERONO_PATHS = ["plugins.Terono.*"] as any[];
 
 /* ================= screen ================= */
 
 export function TeronoSettings() {
     const [tab, setTab] = useState(lastTab);
     const rev = useSettingsRevision();
-    settings.use(); // re-render on every change so options that depend on others appear and disappear
-    useEffect(ensureCss, []);
+    useSettings(TERONO_PATHS); // options that depend on others appear and disappear right away
+    useEffect(() => {
+        ensureCss();
+        loadFontPreviews();
+    }, []);
 
     const current = TABS.find(t => t.id === tab) ?? TABS[0];
     const pick = (id: string) => { lastTab = id; setTab(id); };
@@ -113,7 +127,7 @@ export function TeronoSettings() {
             </nav>
             <p className="dz-set-intro">{current.intro}</p>
             <div key={`${current.id}:${rev}`} className="dz-set-body">
-                {current.id === "presets" ? <PresetGallery /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
+                {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
             </div>
         </div>
     );
@@ -177,9 +191,12 @@ function PresetGallery() {
                             <div className="dz-preset-name">{p.name}</div>
                             <div className="dz-preset-desc">{p.description}</div>
                         </div>
-                        <Button size="small" variant={active ? "secondary" : "primary"} onClick={() => confirmApply(p)}>
-                            {active ? "Re-apply" : "Apply"}
-                        </Button>
+                        <div className="dz-preset-actions">
+                            <Button size="small" variant="secondary" onClick={() => startPreview(p)}>Preview</Button>
+                            <Button size="small" variant={active ? "secondary" : "primary"} onClick={() => confirmApply(p)}>
+                                {active ? "Re-apply" : "Apply"}
+                            </Button>
+                        </div>
                     </div>
                 );
             })}
@@ -214,9 +231,9 @@ function confirmApply(p: Preset) {
                 <div className="dz-apply-img" style={{ background: swatch(p) }}>
                     <img src={thumb(p.id)} alt="" onError={e => { e.currentTarget.style.display = "none"; }} />
                 </div>
-                <p><b>Theme + layout:</b> colors, cards, background and font, plus the preset's layout: server list position, channel and member list sides and the header.</p>
-                <p><b>Only the theme:</b> colors, cards, background and font. Your layout stays as it is.</p>
-                <p className="dz-apply-note">Your logo, menus, chat bar buttons and other options stay either way. To keep your current look, save it under Profiles first.</p>
+                <p><b>Theme + layout:</b> colors, cards (color, corners, material), background and font, plus the preset's layout: server list position, channel and member list sides and the header.</p>
+                <p><b>Only the theme:</b> colors, cards (color, corners, material), background and font. Your layout stays as it is.</p>
+                <p className="dz-apply-note">Your logo, menus, chat bar buttons and other options stay either way. Not sure? Use Preview to try it on first. To keep your current look, save it under Profiles.</p>
             </div>
         </Modal>
     ));
@@ -236,8 +253,7 @@ function ensureCss() {
 
 const CSS = `
 .dz-set { display: flex; flex-direction: column; gap: 12px; }
-.dz-set-tabs { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0;
-    background: var(--modal-background, var(--background-base-low, #111)); }
+.dz-set-tabs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 4px 0; background: none; }
 .dz-set-tab { padding: 7px 13px; border-radius: 999px; cursor: pointer; font: 600 13px var(--font-primary, "gg sans", sans-serif);
     color: var(--text-muted, #aaa); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent);
     border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); transition: background 140ms ease, color 140ms ease, transform 140ms ease; }
@@ -246,7 +262,7 @@ const CSS = `
 .dz-set-tab[aria-selected="true"] { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff);
     box-shadow: 0 4px 14px color-mix(in srgb, var(--dz-accent, #429cff) 35%, transparent); }
 .dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 2px; }
-.dz-set-intro { margin: 0; color: var(--text-muted, #aaa); font-size: 14px; }
+.dz-set-intro { margin: 0; text-align: center; color: var(--text-muted, #aaa); font-size: 14px; }
 .dz-set-body { display: flex; flex-direction: column; gap: 14px; animation: dz-set-in 180ms ease both; }
 .dz-set-group { padding: 4px 16px 8px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent);
     background: color-mix(in srgb, var(--dz-text, #f1f2f4) 2.5%, transparent); }
@@ -267,7 +283,23 @@ const CSS = `
 .dz-preset-body { flex: 1; min-height: 0; }
 .dz-preset-name { font: 700 15px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); }
 .dz-preset-desc { margin-top: 3px; font-size: 13px; line-height: 1.4; color: var(--text-muted, #aaa); }
-.dz-preset > button { align-self: stretch; }
+.dz-preset-actions { display: flex; gap: 8px; }
+.dz-preset-actions > button { flex: 1; }
+
+.dz-hub { display: flex; flex-direction: column; gap: 14px; }
+.dz-hub-intro { margin: 0; color: var(--text-muted, #aaa); font-size: 14px; line-height: 1.45; }
+.dz-hub-list { display: flex; flex-direction: column; padding: 4px 0 6px; }
+.dz-hub-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 6%, transparent); }
+.dz-hub-row:first-child { border-top: none; }
+.dz-hub-text { flex: 1; min-width: 0; }
+.dz-hub-name { font: 600 15px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); transition: color 120ms ease; }
+.dz-hub-on .dz-hub-name { color: var(--dz-accent, #429cff); }
+.dz-hub-desc { margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--text-muted, #aaa); }
+.dz-hub-missing { opacity: .55; }
+.dz-hub-gear { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; padding: 0; border-radius: 8px; cursor: pointer;
+    color: var(--interactive-icon-default, var(--text-muted, #aaa)); background: none; transition: background 120ms ease, color 120ms ease; }
+.dz-hub-gear:hover { color: var(--interactive-icon-hover, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }
+.dz-hub-gear svg { width: 20px; height: 20px; }
 
 .dz-apply { color: var(--text-default, #fff); }
 .dz-apply-img { aspect-ratio: 16 / 9; margin-bottom: 14px; border-radius: 10px; overflow: hidden; }

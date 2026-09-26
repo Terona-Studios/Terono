@@ -20,10 +20,10 @@ const OLD_FORMAT = "darkness-profile";
 const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 const GROUPS: Record<string, { label: string; keys: string[]; }> = {
-    colors: { label: "Colors", keys: ["accentPreset", "accent", "voice", "close", "minimize", "maximize"] },
-    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "textColor", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
+    colors: { label: "Colors", keys: ["accentPreset", "accent", "customText", "textColor", "customIcons", "iconColor", "voice", "close", "minimize", "maximize"] },
+    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
     background: { label: "Background", keys: ["background", "bgBase", "bgColor1", "bgColor2", "bgMediaSource", "bgMediaUrl", "bgMediaDim"] },
-    layout: { label: "Layout & logo", keys: ["serverList", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite"] },
+    layout: { label: "Layout & logo", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite"] },
     header: { label: "Channel header", keys: ["headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch", "headerHiddenButtons"] },
     chat: { label: "Chat bar & activities", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities"] },
     menus: { label: "Menus", keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] },
@@ -90,6 +90,8 @@ async function applyProfile(p: Profile) {
     for (const [k, v] of Object.entries(p.settings)) {
         if (isValidValue(k, v)) store[k] = v;
     }
+    // saved before 1.0.4, when custom card colors always used the text color
+    if (p.settings.cardPreset === "custom" && isValidValue("textColor", p.settings.textColor) && !("customText" in p.settings)) store.customText = true;
     if (p.logo) await setUploadedLogo(p.logo);
     applyAll();
     refreshSettingsUi();
@@ -185,7 +187,7 @@ export function ProfilesPanel() {
             <div style={box}>
                 <div style={row}>
                     <div style={{ flex: 1, minWidth: 180 }}>
-                        <TextInput value={name} onChange={setName} placeholder="Profile name, e.g. Spiderman" maxLength={60} />
+                        <TextInput value={name} onChange={setName} placeholder="Profile name, e.g. Sigma" maxLength={60} />
                     </div>
                     <Button size="small" onClick={save}>Save current</Button>
                 </div>

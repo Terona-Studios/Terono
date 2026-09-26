@@ -8,7 +8,7 @@ import { addProfileBadge, BadgePosition, ProfileBadge, removeProfileBadge } from
 import { addGlobalContextMenuPatch, GlobalContextMenuPatchCallback, removeGlobalContextMenuPatch } from "@api/ContextMenu";
 import * as DataStore from "@api/DataStore";
 import { plugins } from "@api/PluginManager";
-import { Settings, SettingsStore } from "@api/Settings";
+import { Settings, SettingsStore, useSettings } from "@api/Settings";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { GoogleLanguages } from "@plugins/translate/languages";
 import { handleTranslate } from "@plugins/translate/TranslationAccessory";
@@ -20,6 +20,7 @@ import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpa
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { applyPreset, PRESETS } from "./presets";
+import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
 import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
 import { VERSION } from "./version";
@@ -180,8 +181,12 @@ const ROLE_COUNT: Record<string, (n: string) => string> = {
     dash: n => `— ${n}`,
 };
 
+// one fixed list: every role header in the member list listens to just these two settings
+const ROLE_COUNT_PATHS = ["plugins.Terono.roleCount", "plugins.Terono.roleCountCustom"] as any[];
+
 function RoleCount({ count }: { count: string; }) {
-    const { roleCount, roleCountCustom } = settings.use(["roleCount", "roleCountCustom"]);
+    useSettings(ROLE_COUNT_PATHS);
+    const { roleCount, roleCountCustom } = settings.store;
     const text = roleCount === "custom"
         ? (roleCountCustom.includes("%users%") ? roleCountCustom.replaceAll("%users%", count) : "")
         : ROLE_COUNT[roleCount]?.(count) ?? "";
@@ -254,13 +259,18 @@ const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
-    if (raw.dzVersion === 7) return;
-    if (raw.dzVersion !== 6) await migrateLegacy(raw);
+    if (raw.dzVersion === 8) return;
+    if (raw.dzVersion !== 7) {
+        if (raw.dzVersion !== 6) await migrateLegacy(raw);
 
-    // first start: add the theme once (the browser extension has no installer to do it);
-    // removing it afterwards sticks
-    if (!Settings.themeLinks.some(l => THEME_LINK_RE.test(l))) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
-    raw.dzVersion = 7;
+        // first start: add the theme once (the browser extension has no installer to do it);
+        // removing it afterwards sticks
+        if (!Settings.themeLinks.some(l => THEME_LINK_RE.test(l))) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
+    }
+
+    // 1.0.4: the text color got its own switch (before, only custom card colors used it)
+    if (raw.cardPreset === "custom" && raw.customText === undefined) raw.customText = true;
+    raw.dzVersion = 8;
 }
 
 // every start: point an existing Terono theme link at this version (never adds one back)
@@ -399,6 +409,7 @@ export default definePlugin({
 
     async start() {
         await migrate();
+        await restoreUnfinishedPreview();
         pinThemeLink();
         applyAll();
         applyDarkerPalette();
@@ -407,7 +418,7 @@ export default definePlugin({
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         addProfileBadge(creatorBadge);
         addProfileBadge(vrocaBadge);
-        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS });
+        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS });
         document.head.append(badgeStyle);
         addGlobalContextMenuPatch(menuPatch);
         document.addEventListener("click", onDocClick, true);
@@ -428,6 +439,7 @@ export default definePlugin({
         document.removeEventListener("click", onDocClick, true);
         detachHeader();
         stopAutoCheck();
+        cancelPreview();
         removeAll();
     },
 });

@@ -1,9 +1,15 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 // Resolves Midnight's `@container body|root style(--x: v)` switches for Terono's fixed configuration:
 // matching blocks are unwrapped, non-matching ones dropped, @property registrations for switches removed.
 // --small-user-panel stays a live container query (Terono toggles it per layout).
 const fs = require("fs");
 const [src, out] = process.argv.slice(2);
-let css = fs.readFileSync(src, "utf8");
+const css = fs.readFileSync(src, "utf8");
 
 const CONFIG = {
     "--colors": "on",

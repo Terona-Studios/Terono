@@ -12,7 +12,7 @@
 
 ## Theme presets
 
-Every look below is a preset: **Settings → Vencord → Plugins → Terono → Presets → Apply**. Choose **Theme + layout** for the exact look in the picture, or **Only the theme** to keep your own layout. You can change anything afterwards.
+Every look below is a preset: **Settings → Vencord → Plugins → Terono → Presets → Apply**. Click **Preview** to try one on your own Discord first (flip through them, then **Keep** or **Go back**). **Apply** offers **Theme + layout** for the exact look in the picture, or **Only the theme** to keep your own layout. You can change anything afterwards.
 
 | | |
 | --- | --- |
@@ -88,14 +88,14 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 
 ## What you can customize (plugin)
 
-- **Theme presets:** 11 complete looks in one click, then customize them.
+- **Theme presets:** 11 complete looks in one click, with a live preview. Customize them afterwards.
 - **Profiles:** save your setup or parts of it, switch between looks, export and import them as files, reset to defaults.
-- **Colors:** primary color (presets or any color), voice/online color, window button colors.
+- **Colors:** primary color (presets or any color), text color, icon color, voice/online color, window button colors.
 - **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid or glass, with opacity and blur.
 - **Card media:** your own image, GIF or video inside the panels, separate from the background.
 - **Background:** animated gradient, static gradient, solid color, or your own image, GIF or video.
-- **Fonts:** 22 built-in fonts or your own font file.
-- **Layout:** server list left, top, bottom or right. Channel list and member list/profile on either side.
+- **Fonts:** 22 built-in fonts (each shown in its own style in the list) or your own font file.
+- **Layout:** server list left, top, bottom or right (top and bottom can run right to left). Channel list and member list/profile on either side.
 - **Channel header:** name, buttons and search placed left, middle or right, separately for servers and DMs. Hide any header button.
 - **Chat bar:** pick which buttons show (translate, GIF, emoji, sticker, gift, apps).
 - **Member list:** role count style, e.g. `Role (1)`, `Role · 1`, or your own format with `%users%`.
@@ -104,7 +104,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Quick settings button** next to the back/forward arrows.
 - **Loading screens:** Terono logo and "Terono Discord" while Discord starts, updates and connects.
 - **Updates inside Discord:** check for a new version, update and restart without leaving Discord.
-- **Plugin hub:** turn on and set up related Vencord plugins (MessageLogger, ShowHiddenChannels, PinDMs and more) from one place.
+- **Plugin hub:** turn related Vencord plugins (MessageLogger, ShowHiddenChannels, PinDMs and more) on and off instantly and set them up from one place. Ones that need a restart are listed under Updates.
 - **Performance mode** for slower PCs.
 
 ## Updating

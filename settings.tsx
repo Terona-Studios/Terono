@@ -14,7 +14,6 @@ import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common"
 import { TERONO_LOGO } from "./assets";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
-import { PluginHub } from "./hub";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
 
@@ -46,11 +45,11 @@ const RADII: Record<string, [number, number, number, number, number]> = {
 };
 
 export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
-    | "cardColor" | "cardColor2" | "textColor" | "bgBase" | "bgColor1" | "bgColor2";
+    | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2";
 
 const COLOR_DEFAULTS: Record<ColorKey, string> = {
     accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
-    cardColor: "#070708", cardColor2: "#0b1a33", textColor: "#f1f2f4",
+    cardColor: "#070708", cardColor2: "#0b1a33", textColor: "#f1f2f4", iconColor: "#9ea3ab",
     bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
 };
 
@@ -210,6 +209,7 @@ async function onMediaFile(file: File) {
     if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
     if (file.size > MEDIA_MAX_BYTES) return showToast("Background file must be 100 MB or smaller.", Toasts.Type.FAILURE);
     mediaBlob = file;
+    dropObjectUrl("bg");
     await DataStore.set(MEDIA_KEY, file);
     settings.store.bgMediaSource = "file";
     applyMedia();
@@ -220,6 +220,7 @@ async function onCardMediaFile(file: File) {
     if (!MEDIA_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF, WEBP, MP4 or WEBM.", Toasts.Type.FAILURE);
     if (file.size > MEDIA_MAX_BYTES) return showToast("Card media must be 100 MB or smaller.", Toasts.Type.FAILURE);
     cardBlob = file;
+    dropObjectUrl("card");
     await DataStore.set(CARD_MEDIA_KEY, file);
     settings.store.cardMedia = "file";
     applyCardMedia();
@@ -298,11 +299,24 @@ export const settings = definePluginSettings({
     close: color("close", "Close button", "Window close dot."),
     minimize: color("minimize", "Minimize button", "Window minimize dot."),
     maximize: color("maximize", "Maximize button", "Window maximize dot."),
+    customText: {
+        type: OptionType.BOOLEAN,
+        description: "Use your own text color instead of the one that comes with the card colors. Muted text (descriptions, timestamps) is derived from it.",
+        default: false,
+        onChange: () => applyVars(),
+    },
+    customIcons: {
+        type: OptionType.BOOLEAN,
+        description: "Use your own color for icons (channel icons, header and chat bar buttons, settings icons). Off: icons follow the text color.",
+        default: false,
+        onChange: () => applyVars(),
+    },
+    iconColor: color("iconColor", "Icon color", "Icons at rest; hovered and selected icons get brighter.", () => !settings.store.customIcons),
 
     /* --- cards --- */
     cardPreset: {
         type: OptionType.SELECT,
-        description: "Panel colors. Custom unlocks your own fill (solid or gradient) and text color.",
+        description: "Panel colors. Custom unlocks your own fill (solid or gradient). The text color is under Colors.",
         options: [
             { label: "Dark", value: "dark", default: true },
             { label: "Gray", value: "gray" },
@@ -332,7 +346,7 @@ export const settings = definePluginSettings({
         hidden: () => settings.store.cardPreset !== "custom" || settings.store.cardFill !== "gradient",
         onChange: () => applyVars(),
     },
-    textColor: color("textColor", "Text color", "Main text; muted shades are derived from it.", custom("cardPreset")),
+    textColor: color("textColor", "Text color", "Main text; muted shades are derived from it.", () => !settings.store.customText),
     cardShape: {
         type: OptionType.SELECT,
         description: "Corners of panels, popouts and buttons.",
@@ -457,6 +471,16 @@ export const settings = definePluginSettings({
         ],
         onChange: () => applyAttrs(),
     },
+    serverListDirection: {
+        type: OptionType.SELECT,
+        description: "Order of the servers in the horizontal list.",
+        options: [
+            { label: "Left to right", value: "ltr", default: true },
+            { label: "Right to left", value: "rtl" },
+        ],
+        hidden: () => settings.store.serverList !== "top" && settings.store.serverList !== "bottom",
+        onChange: () => applyAttrs(),
+    },
     channelsSide: {
         type: OptionType.SELECT,
         description: "Channel / DM list side.",
@@ -522,6 +546,11 @@ export const settings = definePluginSettings({
             { label: "JetBrains Mono", value: "jetbrains" },
             { label: "Custom (upload)", value: "custom" },
         ],
+        // each font's name drawn in that font
+        componentProps: {
+            renderOptionLabel: (o: { label: string; value: string; }) => <span style={{ fontFamily: fontStack(o.value) }}>{o.label}</span>,
+            renderOptionValue: ([o]: { label: string; value: string; }[]) => o && <span style={{ fontFamily: fontStack(o.value) }}>{o.label}</span>,
+        },
     },
     fontFile: {
         type: OptionType.COMPONENT,
@@ -699,12 +728,6 @@ export const settings = definePluginSettings({
         description: "Language codes never auto-translated. Google often detects Slovenian slang as Slovak (sk) or Croatian (hr); add them if needed.",
         default: "en, sl",
     },
-
-    /* --- hub --- */
-    pluginHub: {
-        type: OptionType.COMPONENT,
-        component: () => <PluginHub />,
-    },
 });
 
 /* ================= settings screen ================= */
@@ -714,11 +737,12 @@ const NAMES: Record<string, string> = {
     autoUpdateCheck: "Check for updates automatically",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
+    customText: "Custom text color", customIcons: "Custom icon color",
     cardShape: "Corners", cardStyle: "Material", glassOpacity: "Glass opacity", glassBlur: "Glass blur",
     cardMedia: "Picture or video", cardMediaUrl: "Link", cardMediaDim: "Card color over it",
     background: "Background", bgMediaSource: "Source", bgMediaUrl: "Link", bgMediaDim: "Darken",
     bgBase: "Base color", bgColor1: "Glow color 1", bgColor2: "Glow color 2",
-    serverList: "Server list", channelsSide: "Channel list side", membersSide: "Member list side",
+    serverList: "Server list", serverListDirection: "Server order", channelsSide: "Channel list side", membersSide: "Member list side",
     roleCount: "Role count", roleCountCustom: "Custom role count",
     font: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
     quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens",
@@ -803,7 +827,7 @@ export function applyVars() {
     --dz-card: ${card};
     --dz-card-2: ${customCard && s.cardFill === "gradient" ? pick("cardColor2") : card};
     --dz-card-angle: ${Number(s.cardAngle) || 0}deg;
-    --dz-text: ${customCard ? pick("textColor") : preset.text};
+    --dz-text: ${s.customText ? pick("textColor") : preset.text};
     --dz-card-alpha: ${cardAlpha(s)}%;
     --dz-float-alpha: ${cardAlpha(s) < 100 ? Math.min(95, cardAlpha(s) + 20) : 100}%;
     --dz-bg-dim: ${(Number(s.bgMediaDim) || 0) / 100};
@@ -816,7 +840,23 @@ export function applyVars() {
     --radius-lg: ${lg}px;
     --radius-xl: ${xl}px;
     --dz-logo-size: ${Number(s.logoSize) || 72}%;
-}`);
+}${s.customIcons ? iconVars(pick("iconColor")) : ""}`);
+}
+
+// the theme sets these on body / .theme-*; "html" in front out-specifies it
+function iconVars(c: string) {
+    const up = (n: number) => `color-mix(in srgb, ${c}, var(--dz-text) ${n}%)`;
+    return `
+html body, html .theme-dark:not(.custom-user-profile-theme), html .theme-light:not(.custom-user-profile-theme), html :is(.theme-darker, .theme-midnight) {
+    --interactive-icon-default: ${c};
+    --interactive-icon-hover: ${up(35)};
+    --interactive-icon-active: ${up(50)};
+    --icon-default: ${c};
+    --icon-subtle: ${c};
+    --icon-muted: color-mix(in srgb, ${c} 70%, var(--dz-card));
+    --icon-strong: ${up(35)};
+    --channel-icon: ${c};
+}`;
 }
 
 export function applyLogo() {
@@ -935,10 +975,28 @@ export function applyAttrs() {
     flag("dzQuick", s.quickIcon);
 
     // bundled, so the horizontal list is there on the very first frame (no network fetch, no flash)
-    sheet("hsl", s.serverList === "top" ? HSL_CSS : s.serverList === "bottom" ? HSL_CSS + "\n" + HSL_BOTTOM_CSS : "");
+    const horizontal = s.serverList === "top" || s.serverList === "bottom";
+    const rtl = horizontal && s.serverListDirection === "rtl" ? "\nhtml:root { --HSL-server-direction: column-reverse; --HSL-server-alignment: flex-end; }" : "";
+    sheet("hsl", !horizontal ? "" : HSL_CSS + (s.serverList === "bottom" ? "\n" + HSL_BOTTOM_CSS : "") + rtl);
 }
 
 /* ---------- fonts ---------- */
+
+export const fontStack = (key: string) => {
+    const family = key === "custom" ? (customFont ? "Terono Custom" : "") : FONTS[key];
+    return family ? `"${family}", "gg sans", sans-serif` : '"gg sans", sans-serif';
+};
+
+// the font dropdown draws every name in its font: one small request with only the letters of the names
+let previewLink: HTMLLinkElement | null = null;
+export function loadFontPreviews() {
+    if (previewLink?.isConnected) return;
+    const families = Object.values(FONTS).filter(Boolean);
+    const text = [...new Set(families.join("") + "Terono()Custom upload")].sort().join("");
+    previewLink = document.head.appendChild(document.createElement("link"));
+    previewLink.rel = "stylesheet";
+    previewLink.href = `https://fonts.googleapis.com/css2?${families.map(f => `family=${encodeURIComponent(f)}:wght@500`).join("&")}&text=${encodeURIComponent(text)}&display=swap`;
+}
 
 let fontLink: HTMLLinkElement | null = null;
 
@@ -966,15 +1024,30 @@ let videoEl: HTMLVideoElement | null = null;
 let bgObserver: MutationObserver | null = null;
 const VIDEO_RE = /\.(mp4|webm|mov)(\?|#|$)/i;
 const probed = new Map<string, "image" | "video" | "fail" | "pending">();
+const probeTimers = new Map<string, number>();
 
+// A link is checked once typing stops (no error for every half-typed link) and shows as soon as it loads.
+// A link that failed is tried again later (its site may have been allowed since).
 function probeUrl(url: string) {
     const known = probed.get(url);
     if (known) return known;
     probed.set(url, "pending");
+    clearTimeout(probeTimers.get(url));
+    probeTimers.set(url, window.setTimeout(() => { probeTimers.delete(url); startProbe(url); }, 400));
+    return "pending";
+}
+
+function startProbe(url: string) {
+    const s = settings.store;
+    // typed further in the meantime: forget this one
+    if (url !== s.bgMediaUrl && url !== s.cardMediaUrl) return void probed.delete(url);
 
     const done = (kind: "image" | "video" | "fail") => {
         probed.set(url, kind);
-        if (kind === "fail") showToast("Image / video couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
+        if (kind === "fail") {
+            showToast("Image / video couldn't be loaded: not a direct image/video link, or its site isn't allowed by Vencord.", Toasts.Type.FAILURE);
+            setTimeout(() => probed.get(url) === "fail" && probed.delete(url), 15_000);
+        }
         applyMedia();
         applyCardMedia();
     };
@@ -986,13 +1059,12 @@ function probeUrl(url: string) {
         v.onerror = () => done("fail");
         v.src = url;
     };
-    if (VIDEO_RE.test(url)) return tryVideo(), "pending";
+    if (VIDEO_RE.test(url)) return tryVideo();
 
     const img = new Image();
     img.onload = () => done("image");
     img.onerror = tryVideo;
     img.src = url;
-    return "pending";
 }
 
 function attachVideo() {
@@ -1019,6 +1091,18 @@ const CARD_SEL = [
     ".searchResultsWrap_a98f3b", ".container_f369db", ".chat_fb64c9", ".callContainer_cb9592", ".container_f391e3 > .content_f75fb0",
     ".shop__6db1d", ".content_f75fb0 > aside > .outer_c0bea0:not(.custom-theme-background)",
 ].join(",");
+
+// a newly chosen file needs a new object URL (the old one would keep showing the previous file)
+function dropObjectUrl(which: "bg" | "card") {
+    if (which === "bg" && mediaUrl) {
+        URL.revokeObjectURL(mediaUrl);
+        mediaUrl = null;
+    }
+    if (which === "card" && cardUrl) {
+        URL.revokeObjectURL(cardUrl);
+        cardUrl = null;
+    }
+}
 
 let cardActive = false;
 let cardLayer: HTMLDivElement | null = null;

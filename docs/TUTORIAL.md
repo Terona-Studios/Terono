@@ -116,21 +116,27 @@ At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Car
 
 The **Presets** tab has 11 complete looks, the same ones as the pictures in the [README](../README.md): Terono Classic, Frosted Glass, Paper White, Crimson Edge, Emerald, Sakura Glass, Amber Dock, Deep Lagoon, Mirror White, Violet Focus and Minimal.
 
-1. Click **Apply** on one and choose:
-   - **Theme + layout:** colors, cards, background and font, plus the preset's layout (server list position, channel and member list sides, header), exactly like its picture.
-   - **Only the theme:** colors, cards, background and font; your layout stays as it is.
-2. Change anything you like in the other tabs. The preset gets a **Customized** tag, and **Re-apply** brings the original back.
+1. Not sure? Click **Preview**. The settings close and the preset is shown on your actual Discord. The bar at the bottom lets you:
+   - flip through the presets with **‹** and **›**,
+   - tick **Include layout** to see the preset's layout too,
+   - click **Keep** to use it, or **Go back** to return to exactly what you had.
+2. Or click **Apply** and choose:
+   - **Theme + layout:** colors, cards (color, corners, glass), background and font, plus the preset's layout (server list position and order, channel and member list sides, header), exactly like its picture.
+   - **Only the theme:** colors, cards (color, corners, glass), background and font; your layout stays as it is.
+3. Change anything you like in the other tabs. The preset gets a **Customized** tag, and **Re-apply** brings the original back.
 
 Your logo, menus, chat bar buttons, translate and performance settings are never touched by a preset. To keep your current look, save it under **Profiles** before applying one.
 
 ### Colors
 
 - **Color preset:** Blue, Red, Purple, Green, Pink or Orange, or use the **Primary color** picker under it for any color. It's used for buttons, links, mentions, selection and glow.
+- **Text:** turn on **Custom text color** and pick any **Text color**. Muted text (descriptions, timestamps) is made from it automatically.
+- **Icons:** turn on **Custom icon color** and pick an **Icon color** for channel icons, header, chat bar and settings icons. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
 - **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
 
 ### Cards (the panels)
 
-- **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**), **Card color** and **Text color**.
+- **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**) and **Card color**. The text color is under **Colors → Text**.
 - **Shape & material:**
   - **Corners:** **Sharp**, **Soft**, **Curved** or **Round**.
   - **Material:** **Solid** or **Glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Menus, popups and buttons always stay solid so they stay readable.
@@ -150,6 +156,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 | Setting | Options |
 | --- | --- |
 | **Server list** | Left (Discord default), Top, Bottom, Right |
+| **Server order** (Top and Bottom only) | Left to right, Right to left |
 | **Channel list side** | Left, Right |
 | **Member list side** | Right, Left |
 
@@ -193,7 +200,7 @@ In the **Profiles** tab:
 - **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
 - **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
 - **Extras → Updates:** **Check for updates automatically** at start and every few hours.
-- **Plugins tab:** turn on and set up Vencord plugins that go well with Terono from one list, e.g. MessageLogger, ShowHiddenChannels, PinDMs and more.
+- **Plugins tab:** turn on and set up Vencord plugins that go well with Terono from one list, e.g. MessageLogger, ShowHiddenChannels, PinDMs and more. Switches react straight away. Plugins that change Discord's own code need a restart: they're listed under **Restart to apply** in the Updates box at the top, with a **Restart Discord** button.
 
 ### Performance
 
