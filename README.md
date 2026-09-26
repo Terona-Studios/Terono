@@ -14,6 +14,26 @@
 | --- | --- | --- |
 | <img src="assets/screenshots/glass.png" alt="Terono, Glass cards"> | <img src="assets/screenshots/white.png" alt="Terono, White cards"> | <img src="assets/screenshots/settings.png" alt="Terono settings"> |
 
+<details>
+<summary><b>More looks</b> (layouts, colors, cards and fonts)</summary>
+
+<br>
+
+| | |
+| --- | --- |
+| <img src="assets/screenshots/red-sharp-left.png" alt="Red, sharp gray cards, server list on the left"> | <img src="assets/screenshots/green-right.png" alt="Green, round cards, server list on the right"> |
+| **Red · Sharp:** gray cards with sharp corners, server list on the left, Inter font, `Role · 1` counts | **Green · Right:** round cards, server list on the right, channel name centered, Outfit font, `Role [1]` counts |
+| <img src="assets/screenshots/pink-glass.png" alt="Pink glass cards"> | <img src="assets/screenshots/orange-bottom-mirrored.png" alt="Orange, server list at the bottom, member list on the left"> |
+| **Pink · Glass:** see-through glass cards at 50%, round corners, Poppins font | **Orange · Bottom:** server list at the bottom, member list moved next to the channels, Manrope font |
+| <img src="assets/screenshots/custom-gradient.png" alt="Custom teal to indigo gradient cards"> | <img src="assets/screenshots/white-mirrored.png" alt="White cards, fully mirrored layout"> |
+| **Custom gradient:** your own card colors (teal → indigo here), custom primary color, Plus Jakarta Sans | **White · Mirrored:** white cards, everything flipped: servers and channels right, members left, search left |
+| <img src="assets/screenshots/purple-header-middle.png" alt="Purple glass, channel name in the middle, no role counts"> | <img src="assets/screenshots/discord-font-minimal.png" alt="Solid black background, Discord font, server list on the left"> |
+| **Purple · Centered:** glass at 70% without blur, channel name in the middle, role counts hidden, Sora font | **Minimal:** solid black background, Discord's own font, server list on the left, `Role — 1` counts |
+
+Every one of these is just a few clicks in **Settings → Vencord → Plugins → Terono**, and you can save each as a profile to switch between them.
+
+</details>
+
 ---
 
 ## Install
