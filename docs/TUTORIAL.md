@@ -285,12 +285,13 @@ Discord's own Android app can't load Vencord. **VendroidEnhanced** can: it's an 
 
 1. Install **VendroidEnhanced** from [vendroid.nin0.dev](https://vendroid.nin0.dev/download) and log in to Discord in it.
 2. Open **User Settings** (the ⚙ at the bottom of the **☰** menu), go to the **VendroidEnhanced** section, and under **Other** tap **Open developer settings**.
-3. In **Vencord location**, paste:
+3. Under **Allow remote debugging** there's a warning: *"This setting is only relevant to people looking to develop VendroidEnhanced…"*. That's the **Vencord location** setting. Tap the empty box right under the warning (it shows a faint `https://example.com/browser.js`) and paste:
 
    ```
    https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Android.js
    ```
 
+   It saves as you type; there's no save button.
 4. Close the app completely (swipe it away in recent apps) and open it again.
 
 That's it. Terono turns itself on and adds its theme. On every start the app shows a short message that the build is being downloaded again. That's how it keeps Terono up to date, and it's normal.
