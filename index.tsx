@@ -242,7 +242,12 @@ function onSettingsChange(value: unknown, path: string) {
 
 /* ================= migration from earlier versions ================= */
 
-const THEME_LINK = "https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css";
+// The theme is loaded from the release tag that matches this plugin, not from @main: jsDelivr caches @main for up
+// to 12 hours, so theme fixes reached people late and the theme could be newer or older than the plugin.
+// Bump together with the release tag.
+const THEME_VERSION = "v12.4.0";
+const THEME_LINK = `https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@${THEME_VERSION}/theme/Terono.theme.css`;
+const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
@@ -251,8 +256,16 @@ async function migrate() {
 
     // first start: add the theme once (the browser extension has no installer to do it);
     // removing it afterwards sticks
-    if (!Settings.themeLinks.includes(THEME_LINK)) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
+    if (!Settings.themeLinks.some(l => THEME_LINK_RE.test(l))) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
     raw.dzVersion = 7;
+}
+
+// every start: point an existing Terono theme link at this version (never adds one back)
+function pinThemeLink() {
+    const links = Settings.themeLinks;
+    if (!links.some(l => THEME_LINK_RE.test(l) && l !== THEME_LINK)) return;
+    const pinned = links.map(l => THEME_LINK_RE.test(l) ? THEME_LINK : l);
+    Settings.themeLinks = pinned.filter((l, i) => pinned.indexOf(l) === i);
 }
 
 async function migrateLegacy(raw: Record<string, any>) {
@@ -367,6 +380,7 @@ export default definePlugin({
 
     async start() {
         await migrate();
+        pinThemeLink();
         applyAll();
         applyDarkerPalette();
         loadUploadedLogo();

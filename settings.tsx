@@ -1026,7 +1026,7 @@ export function applyCardMedia() {
     if (media?.tagName !== (isVideo ? "VIDEO" : "IMG")) {
         media?.remove();
         media = document.createElement(isVideo ? "video" : "img");
-        if (media instanceof HTMLVideoElement) Object.assign(media, { muted: true, loop: true, autoplay: true, playsInline: true });
+        if (media instanceof HTMLVideoElement) Object.assign(media, { muted: true, defaultMuted: true, volume: 0, loop: true, autoplay: true, playsInline: true, disableRemotePlayback: true });
         else Object.assign(media, { alt: "", decoding: "async" });
         media.style.cssText = "display:block;width:100%;height:100%;object-fit:cover";
         cardLayer.append(media);
@@ -1071,7 +1071,7 @@ export function applyMedia() {
                 if (!videoEl?.src.startsWith("blob:")) probed.set(videoEl!.src, "fail");
                 showToast("Background video couldn't be played.", Toasts.Type.FAILURE);
             };
-            Object.assign(videoEl, { muted: true, loop: true, autoplay: true, playsInline: true });
+            Object.assign(videoEl, { muted: true, defaultMuted: true, volume: 0, loop: true, autoplay: true, playsInline: true, disableRemotePlayback: true });
             document.addEventListener("visibilitychange", onVisibility);
             bgObserver = new MutationObserver(attachVideo);
             const layer = document.querySelector("#app-mount .bg__960e4")?.parentElement;

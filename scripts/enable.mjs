@@ -27,7 +27,9 @@ settings.plugins ??= {};
 settings.plugins.Terono = { ...settings.plugins.Terono, enabled: true };
 
 settings.themeLinks ??= [];
-if (!settings.themeLinks.includes(THEME_LINK)) settings.themeLinks.push(THEME_LINK);
+// any Terono link counts (the plugin pins it to its own release version when it starts)
+const TERONO_LINK = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono@[\w.-]+\/theme\/Terono\.theme\.css$/;
+if (!settings.themeLinks.some(l => TERONO_LINK.test(l))) settings.themeLinks.push(THEME_LINK);
 
 // the theme is included now; an old local copy would load it twice
 if (Array.isArray(settings.enabledThemes))

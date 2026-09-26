@@ -14,7 +14,7 @@ const SECTIONS: [string, string[]][] = [
     ["Chat", ["Translate", "MessageLogger", "SilentTyping", "PreviewMessage", "MessageClickActions", "CopyFileContents", "iLoveSpam", "BlurNSFW"]],
     ["Direct messages & people", ["PinDMs", "CopyUserURLs", "IgnoreActivities", "FakeProfileThemes"]],
     ["Servers", ["ShowHiddenChannels", "MemberCount", "PermissionsViewer", "BetterRoleContext", "BetterRoleDot", "ForceOwnerCrown"]],
-    ["Media & voice", ["ImageZoom", "FixImagesQuality", "BiggerStreamPreview", "VolumeBooster", "VoiceDownload", "CallTimer", "YoutubeAdblock"]],
+    ["Media & voice", ["ImageZoom", "FixImagesQuality", "BiggerStreamPreview", "VoiceDownload", "CallTimer", "YoutubeAdblock"]],
     ["Uploads & privacy", ["BetterUploadButton", "AnonymiseFileNames", "AlwaysTrust"]],
     ["Client", ["BetterSettings", "BetterSessions", "CrashHandler", "LoadingQuotes", "ThemeAttributes", "Experiments"]],
 ];
