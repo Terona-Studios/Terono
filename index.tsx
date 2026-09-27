@@ -19,8 +19,10 @@ import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpa
 
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { startBadges, stopBadges } from "./badges";
+import { startBranding, stopBranding } from "./branding";
 import { recordError, safely } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
+import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
 import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
@@ -424,10 +426,15 @@ export default definePlugin({
         try { await migrate(); } catch (e) { recordError("migrate", e); }
         try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
         safely("themeLink", pinThemeLink);
+        safely("motion", () => {
+            setPauseWhenUnfocused(settings.store.pauseUnfocused);
+            startMotion();
+        });
         safely("apply", applyAll);
         safely("darkerPalette", applyDarkerPalette);
         safely("logo", loadUploadedLogo);
         safely("files", loadStoredFiles);
+        safely("branding", startBranding);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         safely("badges", startBadges); // before the creator badge, which then shows first
         safely("creatorBadges", () => {
@@ -459,6 +466,8 @@ export default definePlugin({
         detachHeader();
         stopAutoCheck();
         cancelPreview();
+        stopMotion();
+        stopBranding();
         removeAll();
     },
 });

@@ -91,7 +91,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Theme presets:** 11 complete looks in one click, with a live preview. Customize them afterwards.
 - **Profiles:** save your setup or parts of it, switch between looks, export and import them as files, reset to defaults.
 - **Colors:** primary color (presets or any color), text color, icon color, voice/online color, window button colors.
-- **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid, glass, or **liquid glass** (blurred glass with light slowly flowing over it).
+- **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid, glass, or **liquid glass** (see-through panels with soft light slowly flowing under them).
 - **Embeds:** link previews in one color, a gradient or glass, separately from the cards.
 - **Card media:** your own image, GIF or video inside the panels, separate from the background.
 - **Background:** animated gradient, static gradient, solid color, or your own image, GIF or video.
@@ -108,7 +108,8 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Plugins:** every Vencord plugin in one place, sorted by category, with search. Switch them on and off instantly and set them up. Ones that need a restart are listed under Updates.
 - **Badges:** everyone who uses Terono 1.0.5 – 1.1.5 gets the **Terono OG** badge. Add up to 3 badges of your own (any image, with a glow or outline in any color) and wear Discord's badges. Only people with Terono see them, and changes show up for everyone instantly.
 - **Ctrl + 1** opens the Terono settings from anywhere (can be turned off).
-- **Performance mode** for slower PCs.
+- **Your own app:** your app name in the window title, the Terono logo or your own picture as the window and taskbar icon, and your own pictures for Discord's icons (Friends, Shop, microphone, settings or any button by its name).
+- **Light on your PC:** moving effects update 30 times a second instead of at your monitor's full refresh rate, and stop completely while Discord is in the background (e.g. while you play). **Performance mode** for slower PCs.
 
 ## Found a bug?
 

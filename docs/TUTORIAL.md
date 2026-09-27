@@ -107,7 +107,7 @@ Either:
 - click the **Terono icon** next to the ← → arrows at the top left, or
 - **User Settings** (⚙ next to your name) → **Vencord** → **Plugins** → search **Terono** → ⚙.
 
-At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
+At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, App & Icons, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
 
 **Shortcut:** press **Ctrl + 1** anywhere in Discord to open the Terono settings. Turn it off under **Extras → Shortcut**.
 
@@ -142,7 +142,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**) and **Card color**. The text color is under **Colors → Text**.
 - **Shape & material:**
   - **Corners:** **Sharp**, **Soft**, **Curved** or **Round**.
-  - **Material:** **Solid**, **Glass** or **Liquid glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Liquid glass is blurred glass with soft light slowly flowing over the panels: pick the **Light color** (your colors, or white for clear glass) and the **Flow speed**. Performance mode turns the flowing light off. Menus, popups and buttons always stay solid so they stay readable.
+  - **Material:** **Solid**, **Glass** or **Liquid glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Liquid glass is see-through panels with soft light slowly flowing under them: pick the **Light color** (your colors, or white for clear glass) and the **Flow speed**. With **Glass blur** on, the light is blurred too. Performance mode keeps the light still. Menus, popups and buttons always stay solid so they stay readable.
 - **Embeds (link previews):** **Like the cards**, **One color**, **Gradient** (with **Gradient end** and **Gradient angle**) or **Glass** (with **Glass opacity**). With one color or a gradient, the embed text turns dark or light by itself so it stays readable.
 - **Picture or video in the cards:** an image, GIF or video inside the panels, separate from the background.
   - Choose **URL** and paste a direct link in **Link**, or **File** and upload one (up to 100 MB).
@@ -206,6 +206,12 @@ In the **Profiles** tab:
 - **Extras → Updates:** **Check for updates automatically** at start and every few hours.
 - **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Type in the search bar to find one by name or by what it does, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top, with a **Restart Discord** button.
 
+### App & Icons
+
+- **App name:** replaces "Discord" in the window title (taskbar preview, Alt+Tab). Leave it empty for Discord.
+- **App icon:** **Discord**, the **Terono logo** or **My own picture** (any image) for the window and taskbar icon. A shortcut pinned to the taskbar keeps its own icon. In a browser this changes the tab icon.
+- **Icons:** click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
+
 ### Badges
 
 In the **Badges** tab:
@@ -218,6 +224,8 @@ In the **Badges** tab:
 Everyone who uses Terono sees your changes right away (open profiles update the next time they're opened). People without Terono don't see them at all.
 
 ### Performance
+
+Terono's moving effects (animated background, liquid glass) update 30 times a second, which looks the same for such slow motion but is far lighter than your monitor's full refresh rate. While Discord isn't the active window, e.g. while you play, they stop completely (**Extras → Pause when Discord isn't in front**, on by default).
 
 On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). It stops the background animation, blur, pulsing badges and hover animations. If you want to keep your look, these help most:
 

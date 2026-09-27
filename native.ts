@@ -6,8 +6,10 @@
 
 import { ConnectSrc, CspPolicies, ImageSrc } from "@main/csp";
 import { RendererSettings } from "@main/settings";
-import { app, IpcMainInvokeEvent } from "electron";
-import { join } from "path";
+import { SETTINGS_DIR } from "@main/utils/constants";
+import { app, BrowserWindow, IpcMainInvokeEvent, NativeImage,nativeImage } from "electron";
+import { existsSync, rmSync, writeFileSync } from "fs";
+import { dirname, join } from "path";
 
 import { TERONO_LOGO } from "./assets";
 import { BADGE_API, badgesReady } from "./badgeConfig";
@@ -90,7 +92,75 @@ html, body, #splash {
 }`;
 }
 
+/* ================= your own app: name in the window title, window / taskbar icon =================
+   Discord's app code sets the window title ("Friends - Discord"); every window's setTitle is wrapped so "Discord" in
+   it becomes the chosen name. The icon is swapped on every window, including the ones opened later (popouts). Both
+   are applied from the first window on, straight from the saved settings. */
+
+const ICON_FILE = join(SETTINGS_DIR, "terono-app-icon.png");
+const rawTitles = new WeakMap<BrowserWindow, string>();
+let appName = "";
+let appIcon: NativeImage | null = null;
+
+const renamed = (t: string) => appName ? t.replace(/\bDiscord\b/g, () => appName) : t;
+
+function adopt(win: BrowserWindow) {
+    if (rawTitles.has(win) || win.isDestroyed()) return;
+    const original = win.setTitle.bind(win);
+    rawTitles.set(win, win.getTitle());
+    win.setTitle = (title: string) => {
+        rawTitles.set(win, title);
+        original(renamed(title));
+    };
+    if (appName) original(renamed(win.getTitle()));
+    if (appIcon) win.setIcon(appIcon);
+}
+
+function discordIcon() {
+    const ico = join(dirname(process.execPath), "app.ico");
+    return existsSync(ico) ? nativeImage.createFromPath(ico) : null;
+}
+
+function iconFor(source: unknown) {
+    if (source === "terono") return nativeImage.createFromDataURL(TERONO_LOGO);
+    if (source === "file" && existsSync(ICON_FILE)) return nativeImage.createFromPath(ICON_FILE);
+    return null;
+}
+
+export function setAppName(_: IpcMainInvokeEvent, name: string) {
+    appName = String(name ?? "").trim().slice(0, 40);
+    for (const win of BrowserWindow.getAllWindows()) {
+        adopt(win);
+        if (!win.isDestroyed()) win.setTitle(rawTitles.get(win) ?? win.getTitle());
+    }
+}
+
+// source: "discord" | "terono" | "file"; a new file comes as a PNG data URL and is kept next to Vencord's settings
+export function setAppIcon(_: IpcMainInvokeEvent, source: string, dataUrl?: string) {
+    if (source === "file" && typeof dataUrl === "string" && /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(dataUrl) && dataUrl.length < 4_000_000)
+        writeFileSync(ICON_FILE, Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64"));
+    if (source === "discord" && existsSync(ICON_FILE)) rmSync(ICON_FILE, { force: true });
+
+    appIcon = iconFor(source);
+    const icon = appIcon && !appIcon.isEmpty() ? appIcon : discordIcon();
+    if (!icon) return false;
+    for (const win of BrowserWindow.getAllWindows()) {
+        adopt(win);
+        if (!win.isDestroyed()) win.setIcon(icon);
+    }
+    return true;
+}
+
+{
+    const s = RendererSettings.store.plugins?.Terono;
+    if (s?.enabled) {
+        appName = typeof s.appName === "string" ? s.appName.trim().slice(0, 40) : "";
+        appIcon = iconFor(s.appIcon);
+    }
+}
+
 app.on("browser-window-created", (_, win) => {
+    adopt(win);
     win.webContents.on("dom-ready", () => {
         if (!/[\\/]splash[\\/]index\.html/i.test(win.webContents.getURL())) return;
 

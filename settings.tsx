@@ -12,9 +12,11 @@ import { OptionType } from "@utils/types";
 import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
 
 import { TERONO_LOGO } from "./assets";
+import { AppIconFile, applyAppIdentity, IconSwaps } from "./branding";
 import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
+import { addTicker, isAway, removeTicker, setPauseWhenUnfocused } from "./motion";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
 
@@ -401,7 +403,7 @@ export const settings = definePluginSettings({
     },
     cardStyle: {
         type: OptionType.SELECT,
-        description: "Panel material. Glass: see-through panels. Liquid glass: blurred see-through panels with light slowly flowing over them. Only the big panels change; buttons, menus and popups stay solid. Liquid glass costs a little performance (off in Performance mode).",
+        description: "Panel material. Glass: see-through panels. Liquid glass: see-through panels with soft light slowly flowing under them. Only the big panels change; buttons, menus and popups stay solid. Performance mode keeps liquid glass still.",
         options: [
             { label: "Solid", value: "solid", default: true },
             { label: "Glass", value: "glass" },
@@ -504,9 +506,9 @@ export const settings = definePluginSettings({
     },
     glassBlur: {
         type: OptionType.BOOLEAN,
-        description: "Blur behind glass panels. While blur is on the background animation pauses, because re-blurring a moving background every frame is what makes Discord lag.",
+        description: "Blur behind glass panels. While blur is on the background animation pauses, because re-blurring a moving background is what makes Discord lag. With liquid glass the flowing light gets blurred too: smoother look, a bit more work for the graphics card.",
         default: true,
-        hidden: () => settings.store.cardStyle !== "glass",
+        hidden: () => settings.store.cardStyle === "solid",
         onChange: () => applyAttrs(),
     },
 
@@ -683,6 +685,31 @@ export const settings = definePluginSettings({
         stickToMarkers: false,
         onChange: () => applyVars(),
     },
+    appName: {
+        type: OptionType.STRING,
+        description: "Your app's name: replaces \"Discord\" in the window title (taskbar, Alt+Tab). Empty = Discord.",
+        default: "",
+        placeholder: "Discord",
+        isValid: (v: string) => v.length <= 40 || "40 characters at most",
+    },
+    appIcon: {
+        type: OptionType.SELECT,
+        description: "Window and taskbar icon (desktop app; the tab icon in a browser). A pinned taskbar shortcut keeps its own icon.",
+        options: [
+            { label: "Discord", value: "discord", default: true },
+            { label: "Terono logo", value: "terono" },
+            { label: "My own picture", value: "file" },
+        ],
+    },
+    appIconFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.appIcon !== "file",
+        component: () => <AppIconFile />,
+    },
+    iconSwaps: {
+        type: OptionType.COMPONENT,
+        component: () => <IconSwaps />,
+    },
     loadingScreen: {
         type: OptionType.BOOLEAN,
         description: "Terono loading screens: the Terono logo and name instead of Discord's while Discord starts, updates and connects. The updater window changes on the next start.",
@@ -780,6 +807,12 @@ export const settings = definePluginSettings({
         default: false,
         onChange: () => applyAttrs(),
     },
+    pauseUnfocused: {
+        type: OptionType.BOOLEAN,
+        description: "Pause the moving background, liquid glass and pulsing badges while Discord isn't the active window (e.g. while you play), so they take nothing from your game.",
+        default: true,
+        onChange: () => setPauseWhenUnfocused(settings.store.pauseUnfocused),
+    },
 
     /* --- chat bar & activities --- */
     chatTranslate: { type: OptionType.BOOLEAN, description: "Chat bar: Translate button.", default: true, onChange: () => applyChat() },
@@ -843,13 +876,13 @@ const NAMES: Record<string, string> = {
     serverList: "Server list", serverListDirection: "Server order", channelsSide: "Channel list side", membersSide: "Member list side",
     roleCount: "Role count", roleCountCustom: "Custom role count",
     font: "Font", fontPicker: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
-    quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens",
+    quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens", appName: "App name", appIcon: "App icon",
     headerName: "Channel name", headerHash: "# icon", headerButtons: "Buttons", headerSearch: "Search bar", headerFollow: "Follow button",
     dmHeaderName: "Name & avatar", dmHeaderButtons: "Buttons", dmHeaderSearch: "Search bar", headerHiddenButtons: "Hide buttons by name",
     chatTranslate: "Translate", chatGif: "GIF", chatEmoji: "Emoji", chatSticker: "Sticker", chatGift: "Gift", chatApps: "Apps", chatOtherVencord: "Other plugins' buttons",
     showActivities: "Show activities",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
-    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode",
+    autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", pauseUnfocused: "Pause when Discord isn't in front",
 };
 
 // Only the screen shows in Vencord's own list; each option's "show only when…" rule moves to dzHidden, which the
@@ -886,7 +919,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -1106,11 +1139,13 @@ export function applyAttrs() {
     d.dzMembers = s.membersSide;
     flag("dzGlass", s.cardStyle === "glass" || s.cardStyle === "liquid" || cardActive);
     flag("dzCardMedia", cardActive);
-    flag("dzGlassBlur", (s.cardStyle === "glass" && s.glassBlur) || s.cardStyle === "liquid");
+    flag("dzGlassBlur", (s.cardStyle === "glass" || s.cardStyle === "liquid") && s.glassBlur);
     flag("dzLiquid", s.cardStyle === "liquid");
     if (s.embedStyle && s.embedStyle !== "cards") d.dzEmbed = s.embedStyle;
     else delete d.dzEmbed;
     sheet("embeds", EMBED_CSS);
+    sheet("motion", MOTION_CSS);
+    applyDrift();
     flag("dzActivities", s.showActivities);
     flag("dzLite", s.lite);
     flag("dzQuick", s.quickIcon);
@@ -1248,7 +1283,7 @@ function dropObjectUrl(which: "bg" | "card") {
 let cardActive = false;
 let cardLayer: HTMLDivElement | null = null;
 let cardUrl: string | null = null;
-let cardTimer = 0;
+let stopCardWatch: (() => void) | null = null;
 let cardPath = "";
 
 // outline of every panel as one SVG path, relative to `base`
@@ -1267,6 +1302,24 @@ function panelOutline(base: DOMRect) {
     return d;
 }
 
+// Panels move with the layout (channel switches, member list, resizing); their outline is re-read twice a second
+// when the browser is idle, so it never forces an extra layout in the middle of Discord's own work
+function watchOutline(update: () => void) {
+    const check = () => {
+        if (isAway()) return;
+        if ("requestIdleCallback" in window) requestIdleCallback(update, { timeout: 500 });
+        else update();
+    };
+    const timer = window.setInterval(check, 500);
+    window.addEventListener("resize", update);
+    window.addEventListener("focus", update);
+    return () => {
+        clearInterval(timer);
+        window.removeEventListener("resize", update);
+        window.removeEventListener("focus", update);
+    };
+}
+
 function updateCardClip() {
     if (!cardLayer) return;
     const bg = document.querySelector("#app-mount .bg__960e4");
@@ -1282,8 +1335,8 @@ function removeCardLayer() {
     cardLayer?.remove();
     cardLayer = null;
     cardPath = "";
-    clearInterval(cardTimer);
-    window.removeEventListener("resize", updateCardClip);
+    stopCardWatch?.();
+    stopCardWatch = null;
 }
 
 export function applyCardMedia() {
@@ -1320,8 +1373,7 @@ export function applyCardMedia() {
         cardLayer = document.createElement("div");
         cardLayer.className = "dz-card-media";
         cardLayer.style.cssText = "position:absolute;inset:0;overflow:hidden;pointer-events:none;clip-path:inset(50%)";
-        cardTimer = window.setInterval(updateCardClip, 250);
-        window.addEventListener("resize", updateCardClip);
+        stopCardWatch = watchOutline(updateCardClip);
         document.addEventListener("visibilitychange", onVisibility);
     }
     let media = cardLayer.firstElementChild as HTMLImageElement | HTMLVideoElement | null;
@@ -1354,20 +1406,50 @@ html[data-dz-lite][data-dz-embed="glass"] ${EMBED} {
 }`;
 
 /* ---------- liquid glass ----------
-   Glass panels (blurred) plus light that slowly flows over them: one layer over the app, clipped to the panel
-   outlines, whose soft color blobs only move (transform), so the GPU just slides them around. Nothing under the
-   panels changes, so their blur isn't recomputed every frame. */
+   See-through panels with soft light flowing under them: a layer right above the app background, clipped to the
+   panel outlines, holding a few large soft color spots. They're moved by the shared 30-per-second clock (motion.ts)
+   with plain transforms: no blur filter, no blend mode, no CSS animation at the monitor's refresh rate. With glass
+   blur on, the panels blur the light too. */
 
-const LIQUID_SPEED: Record<string, number> = { slow: 1, medium: 0.6, fast: 0.35 };
+const LIQUID_SPEED: Record<string, number> = { slow: 1, medium: 1.7, fast: 2.8 };
 let liquidLayer: HTMLDivElement | null = null;
-let liquidTimer = 0;
+let stopLiquidWatch: (() => void) | null = null;
 let liquidPath = "";
+let liquidSpeed = 1;
+let liquidW = innerWidth;
+let liquidH = innerHeight;
+
+// each spot drifts on its own slow looping path (periods in seconds at "slow")
+const SPOTS: [periodX: number, periodY: number, phase: number, size: number][] = [
+    [47, 61, 0, 0.85],
+    [59, 43, 2.1, 0.75],
+    [67, 53, 4.2, 0.95],
+];
+
+function liquidTick(t: number) {
+    if (!liquidLayer) return;
+    const spots = liquidLayer.children;
+    const tau = Math.PI * 2 * liquidSpeed;
+    for (let i = 0; i < SPOTS.length; i++) {
+        const [px, py, ph] = SPOTS[i];
+        const x = liquidW * (0.5 + 0.42 * Math.sin(t * tau / px + ph));
+        const y = liquidH * (0.5 + 0.42 * Math.sin(t * tau / py + ph * 1.7));
+        (spots[i] as HTMLElement).style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+    }
+    // a soft light band sweeping across now and then
+    const sweep = (t * liquidSpeed / 26) % 1;
+    (spots[SPOTS.length] as HTMLElement).style.transform = `translate3d(${((sweep * 1.6 - 0.3) * liquidW).toFixed(1)}px, 0, 0) rotate(12deg)`;
+}
 
 function updateLiquidClip() {
     if (!liquidLayer) return;
-    const host = document.querySelector("#app-mount [class*=baseLayer_]");
-    if (host && liquidLayer.parentElement !== host) host.append(liquidLayer);
+    const bg = document.querySelector("#app-mount .bg__960e4");
+    // right above the background (and the card picture, if any), under the panels
+    const after = cardLayer ?? bg;
+    if (after && liquidLayer.previousElementSibling !== after) after.after(liquidLayer);
     if (document.hidden) return;
+    liquidW = innerWidth;
+    liquidH = innerHeight;
     const d = panelOutline(liquidLayer.getBoundingClientRect());
     if (d === liquidPath) return;
     liquidPath = d;
@@ -1375,45 +1457,83 @@ function updateLiquidClip() {
 }
 
 function removeLiquid() {
+    removeTicker(liquidTick);
+    stopLiquidWatch?.();
+    stopLiquidWatch = null;
     liquidLayer?.remove();
     liquidLayer = null;
     liquidPath = "";
-    clearInterval(liquidTimer);
-    window.removeEventListener("resize", updateLiquidClip);
     sheet("liquid", "");
 }
 
 export function applyLiquid() {
     const s = settings.store;
-    if (s.cardStyle !== "liquid" || s.lite) return removeLiquid();
+    if (s.cardStyle !== "liquid") return removeLiquid();
 
-    const k = LIQUID_SPEED[s.liquidSpeed] ?? 1;
+    liquidSpeed = LIQUID_SPEED[s.liquidSpeed] ?? 1;
     const white = s.liquidColor === "white";
-    const [c1, c2, c3] = white ? ["#ffffff", "#ffffff", "#ffffff"] : ["var(--dz-accent)", "var(--dz-bg-1)", "var(--dz-bg-2)"];
+    const colors = white ? ["#ffffff", "#ffffff", "#ffffff"] : ["var(--dz-accent)", "var(--dz-bg-1)", "var(--dz-bg-2)"];
+    const size = Math.round(Math.max(innerWidth, innerHeight) * 0.9);
     sheet("liquid", `
-.dz-liquid { position: absolute; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; mix-blend-mode: screen; opacity: ${white ? 0.12 : 0.28}; clip-path: inset(50%); }
-.dz-liquid i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(60px); will-change: transform; }
-.dz-liquid i:nth-child(1) { left: -20vmax; top: -25vmax; background: radial-gradient(circle, ${c1} 0, transparent 65%); animation: dz-lq-a ${Math.round(38 * k)}s ease-in-out infinite alternate; }
-.dz-liquid i:nth-child(2) { right: -25vmax; top: 10vmax; background: radial-gradient(circle, ${c2} 0, transparent 65%); animation: dz-lq-b ${Math.round(46 * k)}s ease-in-out infinite alternate; }
-.dz-liquid i:nth-child(3) { left: 15vmax; bottom: -35vmax; background: radial-gradient(circle, ${c3} 0, transparent 65%); animation: dz-lq-c ${Math.round(54 * k)}s ease-in-out infinite alternate; }
-.dz-liquid i:nth-child(4) { left: -30vmax; top: -30vmax; width: 160vmax; height: 40vmax; border-radius: 0; filter: blur(40px); opacity: .5;
-    background: linear-gradient(100deg, transparent 35%, #ffffff 50%, transparent 65%); animation: dz-lq-sheen ${Math.round(30 * k)}s ease-in-out infinite; }
-@keyframes dz-lq-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(38vmax, 30vmax, 0) scale(1.25); } }
-@keyframes dz-lq-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-42vmax, 22vmax, 0) scale(.85); } }
-@keyframes dz-lq-c { from { transform: translate3d(0, 0, 0) scale(.9); } to { transform: translate3d(28vmax, -40vmax, 0) scale(1.2); } }
-@keyframes dz-lq-sheen { 0% { transform: translate3d(-20vmax, 0, 0) rotate(8deg); } 50% { transform: translate3d(40vmax, 60vmax, 0) rotate(8deg); } 100% { transform: translate3d(-20vmax, 0, 0) rotate(8deg); } }
-@media (prefers-reduced-motion: reduce) { .dz-liquid i { animation: none !important; } }`);
+.dz-liquid { position: absolute; inset: 0; overflow: hidden; pointer-events: none; clip-path: inset(50%); contain: strict; }
+.dz-liquid i { position: absolute; left: 0; top: 0; border-radius: 50%; will-change: transform; }
+${SPOTS.map(([, , , k], i) => `.dz-liquid i:nth-child(${i + 1}) { width: ${Math.round(size * k)}px; height: ${Math.round(size * k)}px; margin: ${-Math.round(size * k / 2)}px 0 0 ${-Math.round(size * k / 2)}px;
+    background: radial-gradient(circle closest-side, color-mix(in srgb, ${colors[i]} ${white ? 22 : 55}%, transparent), transparent); }`).join("\n")}
+.dz-liquid i:last-child { width: ${Math.round(size * 0.35)}px; height: 300vh; top: -100vh; border-radius: 0;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / ${white ? 7 : 5}%), transparent); }`);
 
     if (!liquidLayer) {
         liquidLayer = document.createElement("div");
         liquidLayer.className = "dz-liquid";
         liquidLayer.setAttribute("aria-hidden", "true");
-        liquidLayer.innerHTML = "<i></i><i></i><i></i><i></i>";
-        liquidTimer = window.setInterval(updateLiquidClip, 300);
-        window.addEventListener("resize", updateLiquidClip);
+        liquidLayer.innerHTML = "<i></i>".repeat(SPOTS.length + 1);
+        stopLiquidWatch = watchOutline(updateLiquidClip);
     }
     updateLiquidClip();
+    // Performance mode: the light stays where it is
+    if (s.lite) {
+        removeTicker(liquidTick);
+        liquidTick(12);
+    } else addTicker(liquidTick);
 }
+
+/* ---------- background drift ----------
+   The animated background's slow drift, from the shared clock instead of a CSS animation (see motion.ts). The theme
+   keeps it still with glass blur (re-blurring a moving background is expensive), in performance mode and for
+   static / solid / picture backgrounds; the same rules apply here. */
+
+let driftEl: HTMLElement | null = null;
+
+function driftTick(t: number) {
+    if (!driftEl?.isConnected) driftEl = document.querySelector<HTMLElement>("#app-mount .bg__960e4");
+    if (!driftEl) return;
+    // the same path as the old animation: corner to corner and back, once a minute
+    const k = -Math.cos(t * Math.PI * 2 / 60);
+    driftEl.style.setProperty("--dz-dx", `${(5 * k).toFixed(3)}%`);
+    driftEl.style.setProperty("--dz-dy", `${(4 * k).toFixed(3)}%`);
+}
+
+function applyDrift() {
+    const s = settings.store;
+    const glassBlur = (s.cardStyle === "glass" || s.cardStyle === "liquid") && s.glassBlur;
+    if (s.background === "animated" && !s.lite && !glassBlur) addTicker(driftTick);
+    else removeTicker(driftTick);
+}
+
+// the theme's CSS animations for these are replaced (drift) or limited (badges pulse a few times, then glow)
+const MOTION_CSS = `
+html[data-dz-plugin] #app-mount .bg__960e4::before {
+    animation: none !important;
+    transform: translate3d(var(--dz-dx, 0%), var(--dz-dy, 0%), 0);
+}
+html[data-dz-plugin] .numberBadge__463b7,
+html[data-dz-plugin] .listItem__650eb::after {
+    animation-iteration-count: 5 !important;
+}
+html[data-dz-away] :is(.numberBadge__463b7, [data-dz-creator], [data-dz-vroca]),
+html[data-dz-away] .listItem__650eb::after {
+    animation-play-state: paused !important;
+}`;
 
 export function applyMedia() {
     const s = settings.store;
@@ -1499,11 +1619,20 @@ export function applyAll() {
     applyCardMedia();
     applyLiquid();
     applyLoading();
+    // the app name / icon go to Discord's main process: only when they change
+    const identity = `${settings.store.appName}|${settings.store.appIcon}`;
+    if (identity !== lastIdentity) {
+        lastIdentity = identity;
+        applyAppIdentity();
+    }
 }
+
+let lastIdentity = "";
 
 export function removeAll() {
     removeCardLayer();
     removeLiquid();
+    removeTicker(driftTick);
     cardActive = false;
     if (cardUrl) URL.revokeObjectURL(cardUrl);
     cardUrl = null;

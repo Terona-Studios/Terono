@@ -15,6 +15,7 @@ import { OptionComponentMap } from "@components/settings/tabs/plugins/components
 import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { BADGES_CSS, BadgesPanel } from "./badges";
+import { BRANDING_CSS } from "./branding";
 import { PluginHub } from "./hub";
 import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./presets";
 import { startPreview } from "./preview";
@@ -82,6 +83,13 @@ const TABS: Tab[] = [
         ],
     },
     {
+        id: "app", label: "App & Icons", intro: "Make Discord your own app: its name, its window and taskbar icon, and your own pictures for its icons.",
+        groups: [
+            { title: "App name & icon", keys: ["appName", "appIcon", "appIconFile"] },
+            { title: "Icons", keys: ["iconSwaps"] },
+        ],
+    },
+    {
         id: "menus", label: "Menus", intro: "Hide right-click menu items by their name, comma separated.",
         groups: [{ keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] }],
     },
@@ -89,7 +97,7 @@ const TABS: Tab[] = [
         id: "extras", label: "Extras", intro: "Auto-translate, performance, the settings shortcut, updates and troubleshooting.",
         groups: [
             { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
-            { title: "Performance", keys: ["lite"] },
+            { title: "Performance", keys: ["lite", "pauseUnfocused"] },
             { title: "Shortcut", keys: ["openKeybind"] },
             { title: "Updates", keys: ["autoUpdateCheck"] },
             { title: "Troubleshooting", keys: ["debugInfo"] },
@@ -257,7 +265,7 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = CSS + BADGES_CSS;
+    css.textContent = CSS + BADGES_CSS + BRANDING_CSS;
     document.head.append(css);
 }
 
