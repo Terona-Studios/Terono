@@ -23,7 +23,7 @@ import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
 import { BULK_CSS, startBulk, stopBulk } from "./bulk";
-import { CALL_CSS, pipDrop, pipFree, startCall, stopCall } from "./call";
+import { CALL_CSS, startCall, stopCall } from "./call";
 import { recordError, safely } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
@@ -279,15 +279,17 @@ const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
-    if (raw.dzVersion === 9) return;
-    if (raw.dzVersion !== 7 && raw.dzVersion !== 8 && raw.dzVersion !== 6) await migrateLegacy(raw);
+    if (raw.dzVersion === 10) return;
+    if (raw.dzVersion !== 9 && raw.dzVersion !== 7 && raw.dzVersion !== 8 && raw.dzVersion !== 6) await migrateLegacy(raw);
 
     // 1.0.4: the text color got its own switch (before, only custom card colors used it)
     if (raw.cardPreset === "custom" && raw.customText === undefined) raw.customText = true;
     // 1.0.8.1: the app name / icon option is gone
     delete raw.appName;
     delete raw.appIcon;
-    raw.dzVersion = 9;
+    // 1.0.9: the call look and minimized stream options are gone (Discord's own again)
+    for (const k of ["callLook", "callCircles", "callWave", "callLiveRing", "callLayout", "callSide", "pipShape", "pipX", "pipY"]) delete raw[k];
+    raw.dzVersion = 10;
 }
 
 /* ================= the theme, built in =================
@@ -410,20 +412,6 @@ export default definePlugin({
                 },
             ],
         },
-        {
-            // minimized stream: stays where you drop it (near a corner it still snaps there)
-            find: "calculateDecayingPosition(",
-            replacement: [
-                {
-                    match: /switch\((\i)\)\{case \i\.\i\.TOP_LEFT:return\{y:(\i),x:(\i)\};case \i\.\i\.BOTTOM_LEFT:return\{y:(\i),x:\i\};case \i\.\i\.TOP_RIGHT:return\{y:\i,x:(\i)\}/,
-                    replace: "{const dzp=$self.pipFree($2,$3,$4,$5);if(dzp)return dzp}$&",
-                },
-                {
-                    match: /handleDragEnd=\((\i),(\i)\)=>\{/,
-                    replace: "$&if($self.pipDrop(this,$1,$2))return;",
-                },
-            ],
-        },
     ],
 
     flux: {
@@ -433,8 +421,6 @@ export default definePlugin({
     },
 
     showActivities: () => settings.store.showActivities,
-    pipFree,
-    pipDrop,
     overlayAction,
     connectionIcon,
     connectionIconLoaded,

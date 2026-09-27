@@ -13,7 +13,7 @@ import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common"
 
 import { TERONO_LOGO } from "./assets";
 import { IconSwaps } from "./branding";
-import { applyCallAttrs } from "./call";
+import { applyAmbient } from "./call";
 import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
@@ -427,76 +427,12 @@ export const settings = definePluginSettings({
         hidden: () => settings.store.overlayShow === "off",
         onChange: () => applyOverlay(),
     },
-    callLook: {
-        type: OptionType.SELECT,
-        description: "Early alpha, can be buggy: How calls and streams look. Terono: people as circles with a wave when they talk, a LIVE ring on streamers (click to watch), watched streams sharing the screen and a glow around them. Discord: Discord's own look. Custom: pick below.",
-        options: [
-            { label: "Terono", value: "terono", default: true },
-            { label: "Discord default", value: "discord" },
-            { label: "Custom", value: "custom" },
-        ],
-        onChange: () => applyCallAttrs(),
-    },
-    callCircles: {
-        type: OptionType.BOOLEAN,
-        description: "People without a camera are just their avatar circle, with the name under it when you point at it.",
-        default: true,
-        hidden: () => settings.store.callLook !== "custom",
-        onChange: () => applyCallAttrs(),
-    },
-    callWave: {
-        type: OptionType.BOOLEAN,
-        description: "A wave around people while they talk.",
-        default: true,
-        hidden: () => settings.store.callLook !== "custom",
-        onChange: () => applyCallAttrs(),
-    },
-    callLiveRing: {
-        type: OptionType.BOOLEAN,
-        description: "A ring in your color and a LIVE pill on people who stream. Click them to watch.",
-        default: true,
-        hidden: () => settings.store.callLook !== "custom",
-        onChange: () => applyCallAttrs(),
-    },
-    callLayout: {
-        type: OptionType.BOOLEAN,
-        description: "Streams you watch share the screen (2 side by side, 3 = one big and two stacked, 4 = 2 x 2), other streams in a column at the side, people in a row below.",
-        default: true,
-        hidden: () => settings.store.callLook !== "custom",
-        onChange: () => applyCallAttrs(),
-    },
     callAmbient: {
         type: OptionType.BOOLEAN,
-        description: "Ambient mode: the stream's colors glow softly around it, like on YouTube.",
+        description: "Early alpha, can be buggy: Ambient mode: the colors of the stream you're watching glow softly around it, like on YouTube.",
         default: true,
-        hidden: () => settings.store.callLook !== "custom",
-        onChange: () => applyCallAttrs(),
+        onChange: () => applyAmbient(),
     },
-    callSide: {
-        type: OptionType.SELECT,
-        description: "Side of the column with the other streams.",
-        options: [
-            { label: "Right", value: "right", default: true },
-            { label: "Left", value: "left" },
-        ],
-        hidden: () => settings.store.callLook === "discord",
-        onChange: () => applyCallAttrs(),
-    },
-    pipShape: {
-        type: OptionType.SELECT,
-        description: "Shape of the minimized stream (also with the button at its top left). Drag it anywhere; dropped near a corner it snaps there like before.",
-        options: [
-            { label: "Rounded (Discord)", value: "rounded", default: true },
-            { label: "Sharp", value: "sharp" },
-            { label: "Extra round", value: "soft" },
-            { label: "Pill", value: "pill" },
-            { label: "Circle", value: "circle" },
-        ],
-        onChange: () => applyCallAttrs(),
-    },
-    // where the minimized stream was dropped, as a fraction of the window (-1: in a corner, Discord's way)
-    pipX: { type: OptionType.NUMBER, description: "Minimized stream spot.", default: -1, hidden: true },
-    pipY: { type: OptionType.NUMBER, description: "Minimized stream spot.", default: -1, hidden: true },
     bulkMode: {
         type: OptionType.BOOLEAN,
         description: "Early alpha, can be buggy: Hold Ctrl and click servers, DMs or friends to select several, then right-click one of them: whatever you pick in Discord's menu is done to all of them. Esc clears the selection.",
@@ -1083,7 +1019,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callLook: "Style", callCircles: "Avatar circles", callWave: "Talking wave", callLiveRing: "LIVE ring on streamers", callLayout: "Split screen for streams", callAmbient: "Ambient mode", callSide: "Other streams column", pipShape: "Minimized stream shape", homeDoubleClick: "Double-click Home: read all",
+    autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callAmbient: "Ambient mode", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",

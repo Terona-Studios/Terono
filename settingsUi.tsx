@@ -86,10 +86,9 @@ const TABS: Tab[] = [
         ],
     },
     {
-        id: "calls", label: "Calls (alpha)", intro: "Voice calls and streams.",
+        id: "calls", label: "Calls (alpha)", intro: "Ambient mode for streams and AFK in calls.",
         groups: [
-            { title: "Look", keys: ["callLook", "callCircles", "callWave", "callLiveRing", "callLayout", "callAmbient", "callSide"] },
-            { title: "Minimized stream", keys: ["pipShape"] },
+            { title: "Streams", keys: ["callAmbient"] },
             { title: "AFK", keys: ["afkMode", "afkStatus"] },
         ],
     },

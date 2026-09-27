@@ -53,16 +53,14 @@ Nothing to do: Terono updates itself in the background when Discord starts and a
 - Channel header: name, buttons and search anywhere; hide any button.
 - Messages: yours on the right and others on the left, or the other way round.
 
-**Calls & streams** *(early alpha in 1.0.8.1: expect bugs)*
-- People as circles with a wave when they talk; streamers get a **LIVE** ring, click to watch.
-- Watch up to 4 streams at once: side by side, one big + two, or 2 × 2; click one to focus it. The others in a side column. **Ambient mode** glow.
-- Minimized stream in any shape (rounded, sharp, pill, circle…), dropped anywhere on screen. **Terono**, **Discord** or **Custom** style.
+**Calls** *(early alpha: expect bugs)*
+- **Ambient mode:** the colors of the stream you watch glow softly around it, like on YouTube.
+- **AFK:** one click mutes and deafens you and shows your message and when you're back to everyone with Terono.
 
-**Tools** *(bulk mode, AFK and the overlay are early alpha in 1.0.8.1)*
+**Tools** *(bulk mode and the overlay are early alpha: expect bugs)*
 - **Search** every setting and plugin from one box.
 - **Plugins:** every Vencord plugin by category, switched on and off instantly.
 - **Bulk mode:** hold Ctrl and click servers, DMs or friends, then right-click one: everything in Discord's menu is done to all of them. Double-click Home to read everything.
-- **AFK in calls:** one click mutes and deafens you and shows your message and when you're back to everyone with Terono.
 - **Terono overlay:** over your games: who's in your call and who's talking, DMs and mentions as they come in. A hotkey makes it clickable: mute, deafen, leave, open a message.
 - **Badges:** the **Terono OG** badge for everyone on 1.0.5 – 1.1.5, up to 3 badges of your own, and Discord's badges. Seen by everyone with Terono, updated instantly.
 - **Profiles:** save looks, switch between them, share them as files.

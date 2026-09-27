@@ -214,16 +214,11 @@ In the **Profiles** tab:
 
 ### Calls
 
-> **Early alpha (1.0.8.1):** the call look, bulk mode, AFK and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
+> **Early alpha:** ambient mode, AFK, bulk mode and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
 
-In the **Calls** tab, **Style** is **Terono**, **Discord default** or **Custom** (pick each part yourself):
+In the **Calls** tab:
 
-- **Avatar circles:** people without a camera are just their round picture; point at one to see the name under it.
-- **Talking wave:** a wave in your color around whoever talks.
-- **LIVE ring on streamers:** a ring and a **LIVE** pill on people who share their screen. Click them to watch; the streams you already watch stay open.
-- **Split screen for streams:** watch several streams at once and they share the screen as neat 16:9 tiles: 2 side by side, 3 = one big on the left and two stacked on the right, 4 = 2 × 2. Streams you don't watch sit in a column at the side (**Other streams column**: right or left), people in a row below. **Click a stream** to focus it (big, the others go to the column); **⊞ All streams** at its top left goes back.
-- **Ambient mode:** the colors of a stream glow softly around it, like on YouTube, following the picture live.
-- **Minimized stream shape:** when you leave the call screen, the small stream window can be **Rounded**, **Sharp**, **Extra round**, **Pill** or a **Circle**. You can also change it with the shape button at its top left (point at the window to see it). Drag it anywhere and it stays there; drop it near a corner and it snaps into the corner like before.
+- **Ambient mode:** while you watch a stream, its colors glow softly around it, like on YouTube, following the picture live. Everything else in calls is Discord's own.
 - **AFK:** a 🌙 button next to camera and screen share in the voice panel. Write a message (e.g. "getting food") and how long you'll be; you're muted and deafened, and everyone in the call with Terono sees a speech bubble next to your name with your message and a countdown. Late? It says *running late*. Click 🌙 again when you're back: mute and deafen go back to how they were. Needs **Connect with Discord** in the Badges tab once. **Also set my Discord status** shows it to people without Terono too.
 
 ### Your own icons
