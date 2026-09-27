@@ -3,7 +3,7 @@
  * @author Terona Studios
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 1.0.8
+ * @version 1.0.8.1
  * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -1597,7 +1597,7 @@ body {
     }
 
     .switchIndicator_a28278 {
-        transition: 0.2s ease;
+        transition: background-color 0.2s ease, transform 0.2s ease;
         border: 1px solid var(--border-light) !important;
 
         /* Off state */
@@ -1637,7 +1637,7 @@ body {
         }
 
         .thumb_a28278 > rect {
-            transition: 0.2s ease;
+            transition: fill 0.2s ease;
             fill: var(--bg-4) !important;
         }
     }
@@ -1973,13 +1973,18 @@ html:root :is(body, .theme-dark, .theme-light) {
     box-shadow: 0 12px 32px rgb(0 0 0 / 35%) !important;
 }
 
-/* glass mode: popouts match the glass panels but stay readable (mostly opaque + blur; small, so blur is cheap) */
+/* glass mode: popouts match the glass panels but stay readable (mostly opaque).
+   Only small menus blur what's behind them: a blur behind a big window is redone on every frame of its
+   open / close animation, which is what made them stutter. */
 html[data-dz-glass] :is(.messagesPopoutWrap__432f4, .menu_c1e9c4, .container__55c99, .autocomplete__6b0e0, .autocomplete__13533, .container__8a031, .outer_c0bea0.user-profile-popout) {
-    background-color: color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent) !important;
+    background-color: color-mix(in srgb, var(--dz-card) max(var(--dz-float-alpha, 82%), 90%), transparent) !important;
     background-image: linear-gradient(var(--dz-card-angle),
-        color-mix(in srgb, var(--dz-card) var(--dz-float-alpha, 82%), transparent),
-        color-mix(in srgb, var(--dz-card-2) var(--dz-float-alpha, 82%), transparent)) !important;
-    backdrop-filter: blur(24px) saturate(1.2);
+        color-mix(in srgb, var(--dz-card) max(var(--dz-float-alpha, 82%), 90%), transparent),
+        color-mix(in srgb, var(--dz-card-2) max(var(--dz-float-alpha, 82%), 90%), transparent)) !important;
+}
+
+html[data-dz-glass]:not([data-dz-lite]) :is(.menu_c1e9c4, .autocomplete__6b0e0, .autocomplete__13533) {
+    backdrop-filter: blur(12px);
 }
 
 .autocomplete__13533 :is(.categoryHeader_d1405b) {

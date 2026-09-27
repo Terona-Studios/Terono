@@ -107,7 +107,7 @@ Either:
 - click the **Terono icon** next to the ← → arrows at the top left, or
 - **User Settings** (⚙ next to your name) → **Vencord** → **Plugins** → search **Terono** → ⚙.
 
-At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, App & Icons, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
+At the top is the **Updates** box and a small **search box**: type anything ("border", "font", "translate", a plugin's name) to find every setting and plugin that matches, wherever it is. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font, Logo & Icons, Calls, Overlay, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
 
 **Shortcut:** press **Ctrl + 1** anywhere in Discord to open the Terono settings. Turn it off under **Extras → Shortcut**.
 
@@ -136,6 +136,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Text:** turn on **Custom text color** and pick any **Text color**. Muted text (descriptions, timestamps) is made from it automatically.
 - **Icons:** turn on **Custom icon color** and pick an **Icon color** for every icon: back/forward arrows, the header buttons (call, pins, add friend, search), channel icons, the server list buttons, the chat bar, the buttons next to your name and settings. Icons on colored buttons stay white, and server folders keep their own color. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
 - **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
+- **App border:** a frame around the whole window: **None**, **Color**, **Gradient** (two colors) or **Picture (file)**: pick any image from your PC; with its **Width**.
 
 ### Cards (the panels)
 
@@ -174,6 +175,7 @@ You can combine them freely. For example, Server list **Right** + Channel list s
 
 ### Chat & Members
 
+- **Messages:** **Mine on the right, others on the left** (like a phone), the other way round, or **Off** (Discord's normal list). Works in DMs and servers.
 - **Chat bar buttons:** turn **Translate**, **GIF**, **Emoji**, **Sticker**, **Gift**, **Apps** and **Other plugins' buttons** on or off.
 - **Member list:** **Role count** as `Role (1)`, `Role · 1`, `Role [1]`, `Role 1`, `Role — 1`, no count, or **Custom**. With Custom, write your own text in **Custom role count**; `%users%` is replaced with the number (e.g. `• %users% online`).
 - **Activities:** turn off **Show activities** to hide *Start an Activity* everywhere: voice panel, call buttons and call grid.
@@ -203,14 +205,30 @@ In the **Profiles** tab:
 
 - **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
 - **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
-- **Extras → Updates:** **Check for updates automatically** at start and every few hours.
-- **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Type in the search bar to find one by name or by what it does, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top, with a **Restart Discord** button.
+- **Extras → Updates:** **Update automatically** (on by default): when Discord starts, and every few hours, a new Terono installs itself in the background and a notification offers a restart. With it off, **Notify about new versions** just tells you.
+- **Extras → Shortcuts:**
+  - **Bulk select with Ctrl:** hold **Ctrl** and click servers, DMs or friends to select several (they get a colored outline). Then **right-click any of them**: it's Discord's normal menu with *For all N servers* on top, and whatever you pick (mark as read, mute for a time, notification settings, hide muted channels, leave, close DM, remove friend, block, …) is done to all of them. Leaving, removing and blocking ask once for all. **Esc** clears the selection.
+  - **Double-click Home: read all** marks every server and DM as read.
+- **Overlay tab (Terono overlay):** a see-through panel over your games and other apps (windowed or borderless; desktop app only). It shows the call you're in with who's talking, muted or streaming, and pops up DMs and messages that mention you. Clicks go through it to your game, and it hides while Discord itself is in front. Press the **Hotkey** (Ctrl + Shift + O by default) to make it clickable: **Mute**, **Deafen**, **Open** (Discord at that call) and **Leave**, or click a message to open it in Discord. Press the hotkey again or **Esc** to go back to your game. Pick its **Corner**, **Only who's talking**, **Messages** on or off and **Opacity**; **Only when I press the hotkey** keeps it hidden until you call it up.
+- **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Find one with the search box at the top of the settings, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top, with a **Restart Discord** button.
 
-### App & Icons
+### Calls
 
-- **App name:** replaces "Discord" in the window title and, on Windows, the name of the Start menu entry, search result and Desktop shortcut (the pinned taskbar icon keeps its name so it stays pinned). Leave it empty for Discord.
-- **App icon:** **Discord**, the **Terono logo** or **My own picture** (any image). On Windows it changes the window, the taskbar button (also when pinned), the Start menu, search and the Desktop shortcut. Windows can take a few seconds to show a new icon everywhere. In a browser this changes the tab icon. Switching back to **Discord** puts every shortcut back exactly as it was.
-- **Icons:** click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
+> **Early alpha (1.0.8.1):** the call look, bulk mode, AFK and the Terono overlay are brand new and can be buggy. Found something? Report it with **Copy debug info** (see [Troubleshooting](#9-troubleshooting)).
+
+In the **Calls** tab, **Style** is **Terono**, **Discord default** or **Custom** (pick each part yourself):
+
+- **Avatar circles:** people without a camera are just their round picture; point at one to see the name under it.
+- **Talking wave:** a wave in your color around whoever talks.
+- **LIVE ring on streamers:** a ring and a **LIVE** pill on people who share their screen. Click them to watch; the streams you already watch stay open.
+- **Split screen for streams:** watch several streams at once and they share the screen as neat 16:9 tiles: 2 side by side, 3 = one big on the left and two stacked on the right, 4 = 2 × 2. Streams you don't watch sit in a column at the side (**Other streams column**: right or left), people in a row below. **Click a stream** to focus it (big, the others go to the column); **⊞ All streams** at its top left goes back.
+- **Ambient mode:** the colors of a stream glow softly around it, like on YouTube, following the picture live.
+- **Minimized stream shape:** when you leave the call screen, the small stream window can be **Rounded**, **Sharp**, **Extra round**, **Pill** or a **Circle**. You can also change it with the shape button at its top left (point at the window to see it). Drag it anywhere and it stays there; drop it near a corner and it snaps into the corner like before.
+- **AFK:** a 🌙 button next to camera and screen share in the voice panel. Write a message (e.g. "getting food") and how long you'll be; you're muted and deafened, and everyone in the call with Terono sees a speech bubble next to your name with your message and a countdown. Late? It says *running late*. Click 🌙 again when you're back: mute and deafen go back to how they were. Needs **Connect with Discord** in the Badges tab once. **Also set my Discord status** shows it to people without Terono too.
+
+### Your own icons
+
+Under **Font, Logo & Icons → Your own pictures for Discord's buttons**: click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
 
 ### Badges
 
@@ -236,7 +254,7 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). 
 
 ## 8. Updating
 
-- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. Terono also checks by itself when Discord starts and every few hours, and shows a notification when an update is out. Turn that off with **Check for updates automatically** (Extras tab).
+- **Discord app, inside Discord:** open the Terono settings. The **Updates** box at the top shows your version; click **Check for updates**. If a new version is out, you see what's new and an **Update** button. The update screen downloads and builds it (you can hide it and keep chatting), then click **Restart Discord**. By default Terono also updates itself when Discord starts and every few hours, and shows a notification with a restart button when it's ready. Turn that off with **Update automatically** (Extras tab).
 - **Discord app, with the installer:** run **Terono-Setup.exe** again (macOS / Linux: the install command). It downloads the newest Terono and Vencord and rebuilds. If the download folder got damaged, it downloads it fresh by itself.
 - **Browser:**
   1. Download the newest zip from [Releases](https://github.com/Terona-Studios/Terono/releases/latest).

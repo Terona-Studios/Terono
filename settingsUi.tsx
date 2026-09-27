@@ -16,7 +16,7 @@ import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpa
 
 import { BADGES_CSS, BadgesPanel } from "./badges";
 import { BRANDING_CSS } from "./branding";
-import { PluginHub } from "./hub";
+import { listedPlugins, PluginHub, Row } from "./hub";
 import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./presets";
 import { startPreview } from "./preview";
 import { loadFontPreviews, settings, useSettingsRevision } from "./settings";
@@ -35,6 +35,7 @@ const TABS: Tab[] = [
             { title: "Text", keys: ["customText", "textColor"] },
             { title: "Icons", keys: ["customIcons", "iconColor"] },
             { title: "Status & window buttons", keys: ["voice", "close", "minimize", "maximize"] },
+            { title: "App border", keys: ["appBorder", "borderColor", "borderColor2", "appBorderWidth"] },
         ],
     },
     {
@@ -69,25 +70,32 @@ const TABS: Tab[] = [
     {
         id: "chat", label: "Chat & Members", intro: "Chat bar buttons, the member list and activities.",
         groups: [
+            { title: "Messages", keys: ["chatSides"] },
             { title: "Chat bar buttons", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord"] },
             { title: "Member list", keys: ["roleCount", "roleCountCustom"] },
             { title: "Activities", keys: ["showActivities"] },
         ],
     },
     {
-        id: "branding", label: "Font & Logo", intro: "Font, home logo, the quick settings icon and loading screens.",
+        id: "branding", label: "Font, Logo & Icons", intro: "Font, home logo, loading screens, and your own pictures instead of Discord's button icons (Friends, Nitro, microphone, …).",
         groups: [
             { title: "Font", keys: ["fontPicker", "fontFile"] },
             { title: "Home logo", keys: ["logoSource", "logoUrl", "logoFile", "logoSize"] },
             { title: "Icon & loading screens", keys: ["quickIcon", "loadingScreen"] },
+            { title: "Your own pictures for Discord's buttons", keys: ["iconSwaps"] },
         ],
     },
     {
-        id: "app", label: "App & Icons", intro: "Make Discord your own app: its name, its window and taskbar icon, and your own pictures for its icons.",
+        id: "calls", label: "Calls (alpha)", intro: "Voice calls and streams.",
         groups: [
-            { title: "App name & icon", keys: ["appName", "appIcon", "appIconFile"] },
-            { title: "Icons", keys: ["iconSwaps"] },
+            { title: "Look", keys: ["callLook", "callCircles", "callWave", "callLiveRing", "callLayout", "callAmbient", "callSide"] },
+            { title: "Minimized stream", keys: ["pipShape"] },
+            { title: "AFK", keys: ["afkMode", "afkStatus"] },
         ],
+    },
+    {
+        id: "overlay", label: "Overlay (alpha)", intro: "The Terono overlay over your games and other apps.",
+        groups: [{ keys: ["overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity"] }],
     },
     {
         id: "menus", label: "Menus", intro: "Hide right-click menu items by their name, comma separated.",
@@ -98,8 +106,8 @@ const TABS: Tab[] = [
         groups: [
             { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
             { title: "Performance", keys: ["lite", "pauseUnfocused"] },
-            { title: "Shortcut", keys: ["openKeybind"] },
-            { title: "Updates", keys: ["autoUpdateCheck"] },
+            { title: "Shortcuts", keys: ["openKeybind", "bulkMode", "homeDoubleClick"] },
+            { title: "Updates", keys: ["autoUpdate", "autoUpdateCheck"] },
             { title: "Troubleshooting", keys: ["debugInfo"] },
         ],
     },
@@ -122,31 +130,97 @@ const TERONO_PATHS = ["plugins.Terono.*"] as any[];
 
 export function TeronoSettings() {
     const [tab, setTab] = useState(lastTab);
+    const [query, setQuery] = useState("");
     const rev = useSettingsRevision();
     useSettings(TERONO_PATHS); // options that depend on others appear and disappear right away
     useEffect(() => {
         ensureCss();
         loadFontPreviews();
+        return placeReportLink();
     }, []);
 
     const current = TABS.find(t => t.id === tab) ?? TABS[0];
-    const pick = (id: string) => { lastTab = id; setTab(id); };
+    const pick = (id: string) => { lastTab = id; setTab(id); setQuery(""); };
 
     return (
         <div className="dz-set">
             <UpdatePanel />
+            <input
+                className="dz-set-search"
+                type="search"
+                placeholder="Search settings and plugins"
+                value={query}
+                onChange={e => setQuery(e.currentTarget.value)}
+            />
             <nav className="dz-set-tabs" role="tablist">
                 {TABS.map(t => (
-                    <button key={t.id} role="tab" aria-selected={t.id === current.id} className="dz-set-tab" onClick={() => pick(t.id)}>{t.label}</button>
+                    <button key={t.id} role="tab" aria-selected={!query && t.id === current.id} className="dz-set-tab" onClick={() => pick(t.id)}>{t.label}</button>
                 ))}
             </nav>
-            <p className="dz-set-intro">{current.intro}</p>
-            <p className="dz-set-report">
-                Found a bug? Report it on the Terona Studios Discord: <a href={REPORT_URL} target="_blank" rel="noreferrer">teronastudios.com/discord</a>
-            </p>
-            <div key={`${current.id}:${rev}`} className="dz-set-body">
-                {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.id === "badges" ? <BadgesPanel /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
-            </div>
+            {query.trim()
+                ? <SearchResults query={query} open={pick} />
+                : (
+                    <div key={`${current.id}:${rev}`} className="dz-set-body">
+                        {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.id === "badges" ? <BadgesPanel /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
+                    </div>
+                )}
+        </div>
+    );
+}
+
+// "Found a bug?" goes at the very top of the plugin window, above Vencord's "Authors"
+function placeReportLink() {
+    const content = document.querySelector(".dz-set")?.closest(".vc-settings-modal-content");
+    if (!content) return;
+    const p = document.createElement("p");
+    p.className = "dz-set-report";
+    p.append("Found a bug? Report it on the Terona Studios Discord: ");
+    const a = Object.assign(document.createElement("a"), { href: REPORT_URL, target: "_blank", rel: "noreferrer", textContent: "teronastudios.com/discord" });
+    p.append(a);
+    content.prepend(p);
+    return () => p.remove();
+}
+
+/* ================= search: every setting, preset and plugin ================= */
+
+const norm = (s: unknown) => String(s ?? "").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+
+function SearchResults({ query, open }: { query: string; open(tab: string): void; }) {
+    const words = norm(query).split(/\s+/).filter(Boolean);
+    const hit = (...texts: unknown[]) => { const t = norm(texts.join(" ")); return words.every(w => t.includes(w)); };
+    const defs = settings.def as Record<string, any>;
+
+    const groups = TABS.flatMap(tab => (tab.groups ?? []).map(g => ({
+        tab, group: g,
+        keys: g.keys.filter(k => visible(k) && hit(tab.label, g.title, k, defs[k]?.displayName, defs[k]?.dzLabel, defs[k]?.description, defs[k]?.dzNote)),
+    }))).filter(g => g.keys.length);
+    const tabs = TABS.filter(t => hit(t.label));
+    const presets = PRESETS.filter(p => hit(p.name, p.description, "preset"));
+    const plugins = listedPlugins().filter(p => hit(p.name, p.description)).slice(0, 25);
+
+    if (!groups.length && !tabs.length && !presets.length && !plugins.length)
+        return <p className="dz-set-empty">Nothing matches “{query}”.</p>;
+
+    return (
+        <div className="dz-set-body">
+            {(tabs.length > 0 || presets.length > 0) && (
+                <div className="dz-set-jump">
+                    {tabs.map(t => <button key={t.id} onClick={() => open(t.id)}>{t.label} tab</button>)}
+                    {presets.map(p => <button key={p.id} onClick={() => open("presets")}>Preset: {p.name}</button>)}
+                </div>
+            )}
+            {groups.map(({ tab, group, keys }) => (
+                <section key={`${tab.id}:${group.title}`} className="dz-set-group">
+                    <h3 className="dz-set-group-title">{tab.label}{group.title ? ` › ${group.title}` : ""}</h3>
+                    <div className="vc-plugins-settings">{keys.map(k => <Option key={k} id={k} />)}</div>
+                </section>
+            ))}
+            {plugins.length > 0 && (
+                <section className="dz-set-group">
+                    <h3 className="dz-set-group-title">Plugins</h3>
+                    <div className="dz-hub-list">{plugins.map(p => <Row key={p.name} plugin={p} />)}</div>
+                </section>
+            )}
         </div>
     );
 }
@@ -282,6 +356,15 @@ const CSS = `
 .dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 2px; }
 .dz-set-report { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--text-muted, #aaa); }
 .dz-set-report a { color: var(--dz-accent, #429cff); }
+.dz-set-search { width: 100%; box-sizing: border-box; height: 38px; padding: 0 14px; border-radius: 12px; font: 500 14px var(--font-primary, "gg sans", sans-serif);
+    color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 10%, transparent); outline: none; transition: border-color 120ms ease; }
+.dz-set-search:focus { border-color: var(--dz-accent, #429cff); }
+.dz-set-search::placeholder { color: var(--text-muted, #aaa); }
+.dz-set-empty { margin: 8px 0; text-align: center; color: var(--text-muted, #aaa); }
+.dz-set-jump { display: flex; flex-wrap: wrap; gap: 6px; }
+.dz-set-jump button { padding: 6px 12px; border-radius: 999px; cursor: pointer; font: 600 13px var(--font-primary, "gg sans", sans-serif); color: #fff; background: var(--dz-accent, #429cff); }
+.vc-settings-modal-content > .dz-set-report { margin: 0 0 12px; text-align: left; font-size: 13px; }
 .dz-set-intro { margin: 0; text-align: center; color: var(--text-muted, #aaa); font-size: 14px; }
 .dz-set-body { display: flex; flex-direction: column; gap: 14px; animation: dz-set-in 180ms ease both; }
 .dz-set-group { padding: 4px 16px 8px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent);

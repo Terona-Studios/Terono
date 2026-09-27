@@ -36,3 +36,11 @@ CREATE TABLE IF NOT EXISTS snapshot (
     dirty INTEGER NOT NULL DEFAULT 1
 );
 INSERT OR IGNORE INTO snapshot (id, json, version, dirty) VALUES (1, '{}', 0, 1);
+
+-- who's away in calls right now (AFK mode); rows older than 12 hours are ignored
+CREATE TABLE IF NOT EXISTS afk (
+    user_id TEXT PRIMARY KEY,
+    text TEXT NOT NULL,
+    until INTEGER NOT NULL DEFAULT 0,
+    since INTEGER NOT NULL
+);

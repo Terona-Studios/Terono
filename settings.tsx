@@ -8,15 +8,17 @@ import * as DataStore from "@api/DataStore";
 import { definePluginSettings, useSettings } from "@api/Settings";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
-import { OptionType } from "@utils/types";
+import { OptionType, PluginNative } from "@utils/types";
 import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
 
 import { TERONO_LOGO } from "./assets";
-import { AppIconFile, applyAppIdentity, IconSwaps } from "./branding";
+import { IconSwaps } from "./branding";
+import { applyCallAttrs } from "./call";
 import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { addTicker, isAway, removeTicker, setPauseWhenUnfocused } from "./motion";
+import { syncOverlay } from "./overlay";
 import { ProfilesPanel } from "./profiles";
 import { TeronoSettings } from "./settingsUi";
 
@@ -48,13 +50,15 @@ const RADII: Record<string, [number, number, number, number, number]> = {
 };
 
 export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
-    | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2" | "embedColor" | "embedColor2";
+    | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2" | "embedColor" | "embedColor2"
+    | "borderColor" | "borderColor2";
 
 const COLOR_DEFAULTS: Record<ColorKey, string> = {
     accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
     cardColor: "#070708", cardColor2: "#0b1a33", textColor: "#f1f2f4", iconColor: "#9ea3ab",
     bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
     embedColor: "#16181d", embedColor2: "#0b2a55",
+    borderColor: "#429cff", borderColor2: "#9b6dff",
 };
 
 /* ================= live color preview =================
@@ -62,9 +66,12 @@ const COLOR_DEFAULTS: Record<ColorKey, string> = {
 
 const preview: Partial<Record<ColorKey, string>> = {};
 let previewFrame = 0;
+let commitTimer = 0;
+// one fixed path list per color (a new array every render would re-subscribe every render)
+const COLOR_PATHS = new Proxy({} as Record<string, any[]>, { get: (cache, id: string) => cache[id] ??= [`plugins.Terono.${id}`] });
 
 function ColorRow({ id, label, note }: { id: ColorKey; label: string; note: string; }) {
-    const value = settings.use([id])[id] as string;
+    const value = useSettings(COLOR_PATHS[id]).plugins.Terono[id] as string;
     const ref = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -79,16 +86,31 @@ function ColorRow({ id, label, note }: { id: ColorKey; label: string; note: stri
         return () => el.removeEventListener("change", commit);
     }, []);
 
+    // a value changed elsewhere (preset, profile): shown without re-creating the input, which would close an open picker
+    useEffect(() => {
+        const el = ref.current;
+        if (el && el.value !== value && !(id in preview)) el.value = value;
+    }, [value]);
+
     return (
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <input
-                key={value}
                 ref={ref}
                 type="color"
                 defaultValue={value}
                 onChange={e => {
-                    preview[id] = e.currentTarget.value;
+                    const v = e.currentTarget.value;
+                    preview[id] = v;
                     if (!previewFrame) previewFrame = requestAnimationFrame(() => { previewFrame = 0; applyVars(); });
+                    // also saved shortly after dragging stops: the picker's closing event doesn't fire the same way everywhere
+                    clearTimeout(commitTimer);
+                    commitTimer = window.setTimeout(() => {
+                        if (preview[id] !== v) return;
+                        delete preview[id];
+                        settings.store[id] = v;
+                        if (id === "accent") settings.store.accentPreset = "custom";
+                        applyVars();
+                    }, 500);
                 }}
                 style={{ width: 44, height: 30, border: "none", padding: 0, background: "none", cursor: "pointer", flexShrink: 0 }}
             />
@@ -104,6 +126,9 @@ const color = (id: ColorKey, label: string, note: string, hidden?: () => boolean
     type: OptionType.COMPONENT as const,
     default: COLOR_DEFAULTS[id],
     hidden,
+    // for the settings search
+    dzLabel: label,
+    dzNote: note,
     component: () => <ColorRow id={id} label={label} note={note} />,
 });
 
@@ -194,6 +219,8 @@ function FontPicker() {
 export const MEDIA_KEY = "Terono_bgMedia";
 export const CARD_MEDIA_KEY = "Terono_cardMedia";
 export const FONT_KEY = "Terono_customFont";
+export const BORDER_KEY = "Terono_appBorder";
+const IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"];
 const MEDIA_MAX_BYTES = 100 * 1024 * 1024;
 const FONT_MAX_BYTES = 10 * 1024 * 1024;
 const MEDIA_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp", "video/mp4", "video/webm"];
@@ -203,17 +230,36 @@ let mediaBlob: Blob | null = null;
 let mediaUrl: string | null = null;
 let cardBlob: Blob | null = null;
 let customFont: FontFace | null = null;
+let borderUrl: string | null = null;
 
 export async function loadStoredFiles() {
     const media = await DataStore.get<Blob>(MEDIA_KEY);
     mediaBlob = media instanceof Blob && MEDIA_TYPES.includes(media.type) ? media : null;
     const card = await DataStore.get<Blob>(CARD_MEDIA_KEY);
     cardBlob = card instanceof Blob && MEDIA_TYPES.includes(card.type) ? card : null;
+    const border = await DataStore.get<Blob>(BORDER_KEY);
+    setBorderBlob(border instanceof Blob && IMAGE_TYPES.includes(border.type) ? border : null);
     const font = await DataStore.get<ArrayBuffer>(FONT_KEY);
     if (font instanceof ArrayBuffer) await registerFont(font);
     applyMedia();
     applyCardMedia();
     applyFont();
+    applyBorder();
+}
+
+function setBorderBlob(b: Blob | null) {
+    if (borderUrl) URL.revokeObjectURL(borderUrl);
+    borderUrl = b ? URL.createObjectURL(b) : null;
+}
+
+async function onBorderFile(file: File) {
+    if (!IMAGE_TYPES.includes(file.type)) return showToast("Use PNG, JPG, GIF or WEBP.", Toasts.Type.FAILURE);
+    if (file.size > 20 * 1024 * 1024) return showToast("The frame picture must be 20 MB or smaller.", Toasts.Type.FAILURE);
+    setBorderBlob(file);
+    await DataStore.set(BORDER_KEY, file);
+    settings.store.appBorder = "image";
+    applyBorder();
+    showToast("Frame picture updated.", Toasts.Type.SUCCESS);
 }
 
 async function registerFont(buf: ArrayBuffer) {
@@ -297,9 +343,168 @@ export const settings = definePluginSettings({
         description: "Last theme preset applied (shown as \"Customized\" once changed).",
         default: "",
     },
+    autoUpdate: {
+        type: OptionType.BOOLEAN,
+        description: "Update Terono by itself: when Discord starts (and every few hours) a new version is installed in the background and used from the next start. You get a notification with a restart button.",
+        default: true,
+    },
     autoUpdateCheck: {
         type: OptionType.BOOLEAN,
-        description: "Check for Terono updates when Discord starts (and every few hours) and show a notification when one is out.",
+        description: "Show a notification when a new Terono is out (when automatic updates are off or can't be used).",
+        default: true,
+    },
+    afkMode: {
+        type: OptionType.BOOLEAN,
+        description: "Early alpha, can be buggy: Moon button next to camera / screen share while you're in a call: leave a message and a time, you're muted and deafened, and everyone with Terono sees a bubble next to your name. Click it again when you're back.",
+        default: true,
+    },
+    afkStatus: {
+        type: OptionType.BOOLEAN,
+        description: "While AFK, also set your Discord status (\"💤 AFK: your message\"), so people without Terono see it too. Your old status comes back after.",
+        default: false,
+    },
+    afkLastText: {
+        type: OptionType.STRING,
+        description: "Last AFK message.",
+        default: "",
+        hidden: true,
+    },
+    overlayShow: {
+        type: OptionType.SELECT,
+        description: "Early alpha, can be buggy: The Terono overlay: a see-through panel over your games and other apps (windowed or borderless) with the call you're in, who's talking, and your DMs and mentions as they come in. Clicks go through it to the game. Hidden while Discord is in front. Desktop app only.",
+        options: [
+            { label: "On: calls and messages over other apps", value: "on", default: true },
+            { label: "Only when I press the hotkey", value: "hotkey" },
+            { label: "Off", value: "off" },
+        ],
+        onChange: () => applyOverlay(),
+    },
+    overlayKey: {
+        type: OptionType.SELECT,
+        description: "Makes the overlay clickable: mute, deafen, leave the call, open a message in Discord. Press it again (or Esc) to go back to your game.",
+        options: [
+            { label: "Ctrl + Shift + O", value: "Control+Shift+O", default: true },
+            { label: "Ctrl + Shift + Space", value: "Control+Shift+Space" },
+            { label: "Alt + ` (key left of 1)", value: "Alt+`" },
+            { label: "Ctrl + Alt + D", value: "Control+Alt+D" },
+            { label: "Shift + Tab", value: "Shift+Tab" },
+            { label: "No hotkey", value: "" },
+        ],
+        hidden: () => settings.store.overlayShow === "off",
+        onChange: () => applyOverlay(),
+    },
+    overlayCorner: {
+        type: OptionType.SELECT,
+        description: "Corner of the screen it sits in.",
+        options: [
+            { label: "Top left", value: "top-left", default: true },
+            { label: "Top right", value: "top-right" },
+            { label: "Bottom left", value: "bottom-left" },
+            { label: "Bottom right", value: "bottom-right" },
+        ],
+        hidden: () => settings.store.overlayShow === "off",
+        onChange: () => applyOverlay(),
+    },
+    overlayCompact: {
+        type: OptionType.BOOLEAN,
+        description: "In a call, only list who's talking right now (and you), instead of everyone.",
+        default: false,
+        hidden: () => settings.store.overlayShow === "off",
+        onChange: () => applyOverlay(),
+    },
+    overlayToasts: {
+        type: OptionType.BOOLEAN,
+        description: "Pop up DMs and messages that mention you.",
+        default: true,
+        hidden: () => settings.store.overlayShow === "off",
+    },
+    overlayOpacity: {
+        type: OptionType.SLIDER,
+        description: "How solid the overlay is (%).",
+        markers: [40, 50, 60, 70, 80, 90, 100],
+        default: 100,
+        stickToMarkers: false,
+        hidden: () => settings.store.overlayShow === "off",
+        onChange: () => applyOverlay(),
+    },
+    callLook: {
+        type: OptionType.SELECT,
+        description: "Early alpha, can be buggy: How calls and streams look. Terono: people as circles with a wave when they talk, a LIVE ring on streamers (click to watch), watched streams sharing the screen and a glow around them. Discord: Discord's own look. Custom: pick below.",
+        options: [
+            { label: "Terono", value: "terono", default: true },
+            { label: "Discord default", value: "discord" },
+            { label: "Custom", value: "custom" },
+        ],
+        onChange: () => applyCallAttrs(),
+    },
+    callCircles: {
+        type: OptionType.BOOLEAN,
+        description: "People without a camera are just their avatar circle, with the name under it when you point at it.",
+        default: true,
+        hidden: () => settings.store.callLook !== "custom",
+        onChange: () => applyCallAttrs(),
+    },
+    callWave: {
+        type: OptionType.BOOLEAN,
+        description: "A wave around people while they talk.",
+        default: true,
+        hidden: () => settings.store.callLook !== "custom",
+        onChange: () => applyCallAttrs(),
+    },
+    callLiveRing: {
+        type: OptionType.BOOLEAN,
+        description: "A ring in your color and a LIVE pill on people who stream. Click them to watch.",
+        default: true,
+        hidden: () => settings.store.callLook !== "custom",
+        onChange: () => applyCallAttrs(),
+    },
+    callLayout: {
+        type: OptionType.BOOLEAN,
+        description: "Streams you watch share the screen (2 side by side, 3 = one big and two stacked, 4 = 2 x 2), other streams in a column at the side, people in a row below.",
+        default: true,
+        hidden: () => settings.store.callLook !== "custom",
+        onChange: () => applyCallAttrs(),
+    },
+    callAmbient: {
+        type: OptionType.BOOLEAN,
+        description: "Ambient mode: the stream's colors glow softly around it, like on YouTube.",
+        default: true,
+        hidden: () => settings.store.callLook !== "custom",
+        onChange: () => applyCallAttrs(),
+    },
+    callSide: {
+        type: OptionType.SELECT,
+        description: "Side of the column with the other streams.",
+        options: [
+            { label: "Right", value: "right", default: true },
+            { label: "Left", value: "left" },
+        ],
+        hidden: () => settings.store.callLook === "discord",
+        onChange: () => applyCallAttrs(),
+    },
+    pipShape: {
+        type: OptionType.SELECT,
+        description: "Shape of the minimized stream (also with the button at its top left). Drag it anywhere; dropped near a corner it snaps there like before.",
+        options: [
+            { label: "Rounded (Discord)", value: "rounded", default: true },
+            { label: "Sharp", value: "sharp" },
+            { label: "Extra round", value: "soft" },
+            { label: "Pill", value: "pill" },
+            { label: "Circle", value: "circle" },
+        ],
+        onChange: () => applyCallAttrs(),
+    },
+    // where the minimized stream was dropped, as a fraction of the window (-1: in a corner, Discord's way)
+    pipX: { type: OptionType.NUMBER, description: "Minimized stream spot.", default: -1, hidden: true },
+    pipY: { type: OptionType.NUMBER, description: "Minimized stream spot.", default: -1, hidden: true },
+    bulkMode: {
+        type: OptionType.BOOLEAN,
+        description: "Early alpha, can be buggy: Hold Ctrl and click servers, DMs or friends to select several, then right-click one of them: whatever you pick in Discord's menu is done to all of them. Esc clears the selection.",
+        default: true,
+    },
+    homeDoubleClick: {
+        type: OptionType.BOOLEAN,
+        description: "Double-click the Home button (top of the server list) to mark every server and DM as read.",
         default: true,
     },
     openKeybind: {
@@ -347,6 +552,32 @@ export const settings = definePluginSettings({
         description: "Use your own text color instead of the one that comes with the card colors. Muted text (descriptions, timestamps) is derived from it.",
         default: false,
         onChange: () => applyVars(),
+    },
+    appBorder: {
+        type: OptionType.SELECT,
+        description: "A frame around the whole app window.",
+        options: [
+            { label: "None", value: "none", default: true },
+            { label: "One color", value: "color" },
+            { label: "Gradient", value: "gradient" },
+            { label: "Picture (file)", value: "image" },
+        ],
+        onChange: () => applyBorder(),
+    },
+    borderColor: color("borderColor", "Border color", "Frame color (gradient start).", () => settings.store.appBorder !== "color" && settings.store.appBorder !== "gradient"),
+    borderColor2: color("borderColor2", "Border gradient end", "Second color of the frame gradient.", () => settings.store.appBorder !== "gradient"),
+    appBorderFile: {
+        type: OptionType.COMPONENT,
+        hidden: () => settings.store.appBorder !== "image",
+        component: () => <FileRow title="Frame picture" note="PNG, JPG, GIF or WEBP up to 20 MB, stretched around the window. Stored only on this PC." accept={IMAGE_TYPES.join(",")} onFile={onBorderFile} />,
+    },
+    appBorderWidth: {
+        type: OptionType.SLIDER,
+        description: "Frame width (px).",
+        markers: [1, 2, 3, 4, 6, 8, 10, 12],
+        default: 3,
+        stickToMarkers: false,
+        hidden: () => settings.store.appBorder === "none",
     },
     customIcons: {
         type: OptionType.BOOLEAN,
@@ -685,27 +916,6 @@ export const settings = definePluginSettings({
         stickToMarkers: false,
         onChange: () => applyVars(),
     },
-    appName: {
-        type: OptionType.STRING,
-        description: "Your app's name: replaces \"Discord\" in the window title and, on Windows, in the Start menu, search and Desktop shortcut. Empty = Discord.",
-        default: "",
-        placeholder: "Discord",
-        isValid: (v: string) => v.length <= 40 || "40 characters at most",
-    },
-    appIcon: {
-        type: OptionType.SELECT,
-        description: "Icon of the window, the taskbar (also when pinned), the Start menu, search and the Desktop shortcut (Windows; on other systems the window icon). In a browser: the tab icon. Switching back to Discord restores everything.",
-        options: [
-            { label: "Discord", value: "discord", default: true },
-            { label: "Terono logo", value: "terono" },
-            { label: "My own picture", value: "file" },
-        ],
-    },
-    appIconFile: {
-        type: OptionType.COMPONENT,
-        hidden: () => settings.store.appIcon !== "file",
-        component: () => <AppIconFile />,
-    },
     iconSwaps: {
         type: OptionType.COMPONENT,
         component: () => <IconSwaps />,
@@ -822,6 +1032,16 @@ export const settings = definePluginSettings({
     chatGift: { type: OptionType.BOOLEAN, description: "Chat bar: Gift button.", default: false, onChange: () => applyChat() },
     chatApps: { type: OptionType.BOOLEAN, description: "Chat bar: Apps button.", default: false, onChange: () => applyChat() },
     chatOtherVencord: { type: OptionType.BOOLEAN, description: "Chat bar: other Vencord plugin buttons.", default: false, onChange: () => applyChat() },
+    chatSides: {
+        type: OptionType.SELECT,
+        description: "Which side messages are on, in DMs and servers.",
+        options: [
+            { label: "All on the left (Discord)", value: "off", default: true },
+            { label: "Mine right, others left", value: "mineRight" },
+            { label: "Mine left, others right", value: "mineLeft" },
+        ],
+        onChange: () => applyAttrs(),
+    },
     showActivities: {
         type: OptionType.BOOLEAN,
         description: "Show “Start an Activity” buttons and activity tiles (voice panel, call controls, call grid). Applies instantly.",
@@ -863,7 +1083,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    autoUpdateCheck: "Check for updates automatically", openKeybind: "Ctrl + 1 shortcut",
+    autoUpdate: "Update automatically", autoUpdateCheck: "Notify about new versions", openKeybind: "Ctrl + 1 shortcut", bulkMode: "Bulk select with Ctrl", afkMode: "AFK button in calls", overlayShow: "Terono overlay", overlayKey: "Hotkey", overlayOpacity: "Opacity", overlayCorner: "Corner", overlayCompact: "Only who's talking", overlayToasts: "Messages", afkStatus: "Also set my Discord status", callLook: "Style", callCircles: "Avatar circles", callWave: "Talking wave", callLiveRing: "LIVE ring on streamers", callLayout: "Split screen for streams", callAmbient: "Ambient mode", callSide: "Other streams column", pipShape: "Minimized stream shape", homeDoubleClick: "Double-click Home: read all",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -876,11 +1096,12 @@ const NAMES: Record<string, string> = {
     serverList: "Server list", serverListDirection: "Server order", channelsSide: "Channel list side", membersSide: "Member list side",
     roleCount: "Role count", roleCountCustom: "Custom role count",
     font: "Font", fontPicker: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
-    quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens", appName: "App name", appIcon: "App icon",
+    quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens",
     headerName: "Channel name", headerHash: "# icon", headerButtons: "Buttons", headerSearch: "Search bar", headerFollow: "Follow button",
     dmHeaderName: "Name & avatar", dmHeaderButtons: "Buttons", dmHeaderSearch: "Search bar", headerHiddenButtons: "Hide buttons by name",
     chatTranslate: "Translate", chatGif: "GIF", chatEmoji: "Emoji", chatSticker: "Sticker", chatGift: "Gift", chatApps: "Apps", chatOtherVencord: "Other plugins' buttons",
-    showActivities: "Show activities",
+    showActivities: "Show activities", chatSides: "Message sides",
+    appBorder: "App border", borderColor: "Border color", borderColor2: "Gradient end", appBorderFile: "Frame picture", appBorderWidth: "Width",
     hiddenMenuItems: "In every menu", hiddenServerMenu: "In the server menu", hiddenUserMenu: "In user & DM menus",
     autoTranslate: "Auto-translate", keepLanguages: "Never translate", lite: "Performance mode", pauseUnfocused: "Pause when Discord isn't in front",
 };
@@ -895,7 +1116,7 @@ for (const [key, def] of Object.entries(settings.def as Record<string, any>)) {
         const d = def.description.replace(/^(Servers|DMs|Chat bar): /, "");
         def.description = d.charAt(0).toUpperCase() + d.slice(1);
     }
-    def.dzHidden = key === "lastVersion" || key === "presetId" ? true : def.hidden;
+    def.dzHidden = key === "lastVersion" || key === "presetId" || key === "afkLastText" ? true : def.hidden;
     def.hidden = true;
 }
 
@@ -919,7 +1140,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid" | "motion" | "sides" | "border", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null, motion: null, sides: null, border: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -1144,6 +1365,12 @@ export function applyAttrs() {
     if (s.embedStyle && s.embedStyle !== "cards") d.dzEmbed = s.embedStyle;
     else delete d.dzEmbed;
     sheet("embeds", EMBED_CSS);
+    // chat sides: Vencord's ThemeAttributes marks your own messages (data-is-self); flipping a message's direction
+    // mirrors Discord's layout (avatar, spacing), the text itself stays left-to-right
+    if (s.chatSides === "mineRight" || s.chatSides === "mineLeft") d.dzChat = s.chatSides;
+    else delete d.dzChat;
+    sheet("sides", SIDES_CSS);
+    applyBorder();
     sheet("motion", MOTION_CSS);
     applyDrift();
     flag("dzActivities", s.showActivities);
@@ -1390,6 +1617,40 @@ export function applyCardMedia() {
     updateCardClip();
 }
 
+/* ---------- chat sides ---------- */
+
+const SIDE = (self: boolean) => `:is(li[data-is-self="${self}"], .message__5126c[data-is-self="${self}"])`;
+const flip = (mode: string, self: boolean) => `
+html[data-dz-chat="${mode}"] ${SIDE(self)}:is(.message__5126c), html[data-dz-chat="${mode}"] ${SIDE(self)} .message__5126c { direction: rtl; }
+html[data-dz-chat="${mode}"] ${SIDE(self)} :is([id^="message-content"], [id^="message-accessories"] > *, [class*="repliedMessage_"], [class*="username_"], [class*="botTag"], time, [class*="threadMessageAccessory"]) { direction: ltr; }
+html[data-dz-chat="${mode}"] ${SIDE(self)} [id^="message-content"] { text-align: right; }`;
+const SIDES_CSS = flip("mineRight", true) + flip("mineLeft", false);
+
+/* ---------- app border ---------- */
+
+export function applyBorder() {
+    const s = settings.store;
+    const w = Math.max(1, Math.min(12, Number(s.appBorderWidth) || 3));
+    const fill = s.appBorder === "color" ? pick("borderColor")
+        : s.appBorder === "gradient" ? `linear-gradient(135deg, ${pick("borderColor")}, ${pick("borderColor2")})`
+            : s.appBorder === "image" && borderUrl ? `url("${borderUrl}") center / 100% 100%` : "";
+    // a ring: the fill masked to the frame only, above everything, never catching the mouse
+    sheet("border", !fill ? "" : `
+#app-mount::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    pointer-events: none;
+    padding: ${w}px;
+    border-radius: var(--radius-lg, 12px);
+    background: ${fill};
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}`);
+}
+
 /* ---------- embeds ---------- */
 
 const EMBED = ":is(.embedFull__623de, article[class*=embedFull_])";
@@ -1608,6 +1869,31 @@ export function applyDarkerPalette() {
     sheet("darker", decl ? `html :is(.theme-darker, .theme-midnight):not(html) { ${decl} }` : "");
 }
 
+/* ---------- overlay (the main process does it) ---------- */
+
+let lastOverlay = "";
+export const forgetOverlay = () => { lastOverlay = ""; };
+export function applyOverlay() {
+    if (!IS_DISCORD_DESKTOP) return;
+    syncOverlay();
+    const s = settings.store;
+    const cfg = {
+        show: (s.overlayShow ?? "on") as "on" | "hotkey" | "off",
+        key: s.overlayKey ?? "",
+        corner: s.overlayCorner ?? "top-left",
+        opacity: (Number(s.overlayOpacity) || 100) / 100,
+        accent: getComputedStyle(document.documentElement).getPropertyValue("--dz-accent").trim() || "#429cff",
+        compact: !!s.overlayCompact,
+    };
+    const key = JSON.stringify(cfg);
+    if (key === lastOverlay) return;
+    lastOverlay = key;
+    const Native = VencordNative.pluginHelpers.Terono as PluginNative<typeof import("./native")>;
+    Native.overlayConfig(cfg).then(ok => {
+        if (!ok) showToast(`The overlay hotkey ${cfg.key} is taken by another app. Pick another one in the Overlay tab.`, Toasts.Type.FAILURE);
+    }).catch(() => { });
+}
+
 export function applyAll() {
     applyAttrs();
     applyVars();
@@ -1619,15 +1905,8 @@ export function applyAll() {
     applyCardMedia();
     applyLiquid();
     applyLoading();
-    // the app name / icon go to Discord's main process: only when they change
-    const identity = `${settings.store.appName}|${settings.store.appIcon}`;
-    if (identity !== lastIdentity) {
-        lastIdentity = identity;
-        applyAppIdentity();
-    }
+    applyOverlay();
 }
-
-let lastIdentity = "";
 
 export function removeAll() {
     removeCardLayer();
@@ -1650,5 +1929,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed", "dzChat"]) delete d[k];
 }

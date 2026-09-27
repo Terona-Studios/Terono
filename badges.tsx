@@ -139,6 +139,8 @@ const onConnect = () => void hello();
 /* ---------- live: every change from everyone, as it happens ---------- */
 
 let socket: WebSocket | null = null;
+const liveListeners = new Set<(msg: any) => void>();
+export const onLive = (fn: (msg: any) => void) => { liveListeners.add(fn); return () => void liveListeners.delete(fn); };
 let retry = 0;
 let retryTimer = 0;
 let saveTimer = 0;
@@ -159,7 +161,10 @@ function connect() {
         lastHeard = Date.now();
         if (e.data === "pong") return;
         try {
-            const { u, e: entry } = JSON.parse(e.data);
+            const msg = JSON.parse(e.data);
+            // other kinds of live messages (AFK) go to whoever listens for them
+            if (msg.t) return liveListeners.forEach(l => l(msg));
+            const { u, e: entry } = msg;
             if (typeof u !== "string") return;
             if (entry) list[u] = entry;
             else delete list[u];
@@ -220,7 +225,7 @@ export function stopBadges() {
 
 interface Auth { token: string; id: string; }
 
-async function getAuth() {
+export async function getAuth() {
     const auth = await DataStore.get<Record<string, string>>(AUTH_KEY);
     const id = UserStore.getCurrentUser()?.id;
     return id && auth?.[id] ? { token: auth[id], id } as Auth : null;
@@ -261,7 +266,7 @@ async function disconnect() {
     await DataStore.set(AUTH_KEY, all);
 }
 
-async function api(path: string, method = "GET", body?: unknown) {
+export async function api(path: string, method = "GET", body?: unknown) {
     const auth = await getAuth();
     if (!auth) throw new Error("Not connected");
     const res = await fetch(`${BADGE_API}${path}`, {

@@ -99,7 +99,7 @@ export async function latestRelease(): Promise<ReleaseInfo> {
         if (!res.ok) return { error: `GitHub answered ${res.status}` };
         const data = await res.json() as { tag_name?: string; body?: string; html_url?: string; };
         const version = data.tag_name?.replace(/^v/, "");
-        if (!version || !/^\d+\.\d+\.\d+$/.test(version)) return { error: "No valid release found" };
+        if (!version || !/^\d+(\.\d+){2,3}$/.test(version)) return { error: "No valid release found" };
         return { version, notes: (data.body ?? "").slice(0, 2000), url: data.html_url };
     } catch (e) {
         return { error: `Couldn't reach GitHub (${(e as Error).message})` };
@@ -110,7 +110,7 @@ export async function latestRelease(): Promise<ReleaseInfo> {
 
 export function startUpdate(root: string, version: string): { ok: boolean; error?: string; } {
     if (state.running) return { ok: true };
-    if (!/^\d+\.\d+\.\d+$/.test(version)) return { ok: false, error: "Invalid version" };
+    if (!/^\d+(\.\d+){2,3}$/.test(version)) return { ok: false, error: "Invalid version" };
 
     Object.assign(state, { running: true, step: 0, done: false, error: undefined, log: [] });
     update(root, `v${version}`).then(

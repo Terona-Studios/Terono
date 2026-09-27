@@ -9,6 +9,7 @@ import { addGlobalContextMenuPatch, GlobalContextMenuPatchCallback, removeGlobal
 import * as DataStore from "@api/DataStore";
 import { plugins } from "@api/PluginManager";
 import { Settings, SettingsStore, useSettings } from "@api/Settings";
+import { disableStyle, enableStyle } from "@api/Styles";
 import { openPluginModal } from "@components/settings/tabs/plugins/PluginModal";
 import { GoogleLanguages } from "@plugins/translate/languages";
 import { handleTranslate } from "@plugins/translate/TranslationAccessory";
@@ -17,15 +18,21 @@ import definePlugin from "@utils/types";
 import { Message } from "@vencord/discord-types";
 import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpack/common";
 
+import { AFK_CSS, startAfk, stopAfk } from "./afk";
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { startBadges, stopBadges } from "./badges";
 import { startBranding, stopBranding } from "./branding";
+import { BULK_CSS, startBulk, stopBulk } from "./bulk";
+import { CALL_CSS, pipDrop, pipFree, startCall, stopCall } from "./call";
 import { recordError, safely } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { setPauseWhenUnfocused, startMotion, stopMotion } from "./motion";
+import { overlayAction, stopOverlay } from "./overlay";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
-import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
+import { ACCENTS, applyAll, applyDarkerPalette, CARDS, DEFAULT_LOGO, forgetOverlay, loadStoredFiles, loadUploadedLogo, removeAll, settings } from "./settings";
+import { SHAPES_CSS, startShapes, stopShapes } from "./shapes";
+import themeStyle from "./theme/Terono.theme.css?managed";
 import { announceUpdated, startAutoCheck, stopAutoCheck } from "./updater";
 import { VERSION } from "./version";
 
@@ -272,33 +279,38 @@ const THEME_LINK_RE = /^https:\/\/cdn\.jsdelivr\.net\/gh\/Terona-Studios\/Terono
 
 async function migrate() {
     const raw = Settings.plugins.Terono as Record<string, any>;
-    if (raw.dzVersion === 8) return;
-    if (raw.dzVersion !== 7) {
-        if (raw.dzVersion !== 6) await migrateLegacy(raw);
-
-        // first start: add the theme once (the browser extension has no installer to do it);
-        // removing it afterwards sticks
-        if (!Settings.themeLinks.some(l => THEME_LINK_RE.test(l))) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
-    }
+    if (raw.dzVersion === 9) return;
+    if (raw.dzVersion !== 7 && raw.dzVersion !== 8 && raw.dzVersion !== 6) await migrateLegacy(raw);
 
     // 1.0.4: the text color got its own switch (before, only custom card colors used it)
     if (raw.cardPreset === "custom" && raw.customText === undefined) raw.customText = true;
-    raw.dzVersion = 8;
+    // 1.0.8.1: the app name / icon option is gone
+    delete raw.appName;
+    delete raw.appIcon;
+    raw.dzVersion = 9;
 }
 
-// every start: point an existing Terono theme link at this version (never adds one back)
-function pinThemeLink() {
-    const links = Settings.themeLinks;
-    if (links.some(l => THEME_LINK_RE.test(l) && l !== THEME_LINK)) {
-        const pinned = links.map(l => THEME_LINK_RE.test(l) ? THEME_LINK : l);
-        Settings.themeLinks = pinned.filter((l, i) => pinned.indexOf(l) === i);
-    }
+/* ================= the theme, built in =================
+   The plugin carries its own copy of the theme and turns it on itself: no download, so it's there on the first
+   frame, works offline and where jsDelivr is blocked, and always matches this version. Colors and most options only
+   work through the theme, so a missing or outdated theme link was why they did nothing on some PCs.
+   The online theme link would load it a second time, so it's taken out while the plugin runs and put back when
+   the plugin is turned off (the theme then keeps working on its own). */
 
-    // an old local copy (from earlier setups) next to the link loads the whole theme twice: double the style
-    // work on every page switch, and its outdated rules win over the link's
-    const local = /^(terono|darkness)\.theme\.css$/i;
-    if (Settings.themeLinks.some(l => THEME_LINK_RE.test(l)) && Settings.enabledThemes.some(t => local.test(t)))
-        Settings.enabledThemes = Settings.enabledThemes.filter(t => !local.test(t));
+const LOCAL_THEME = /^(terono|darkness)\.theme\.css$/i;
+
+function useBuiltInTheme() {
+    enableStyle(themeStyle);
+    if (Settings.themeLinks.some(l => THEME_LINK_RE.test(l)))
+        Settings.themeLinks = Settings.themeLinks.filter(l => !THEME_LINK_RE.test(l));
+    // an old local copy from earlier setups would load it twice too
+    if (Settings.enabledThemes.some(t => LOCAL_THEME.test(t)))
+        Settings.enabledThemes = Settings.enabledThemes.filter(t => !LOCAL_THEME.test(t));
+}
+
+function leaveThemeLink() {
+    disableStyle(themeStyle);
+    if (!Settings.themeLinks.some(l => THEME_LINK_RE.test(l))) Settings.themeLinks = [...Settings.themeLinks, THEME_LINK];
 }
 
 async function migrateLegacy(raw: Record<string, any>) {
@@ -340,6 +352,8 @@ export default definePlugin({
     description: "Companion for the Terono theme by Terona Studios: colors, cards, card media, background, layout, header, home logo, loading screens, chat bar, activities, menu cleanup, auto-translate, profiles and a hub for the plugins it pairs with.",
     authors: [{ name: "Terona Studios", id: 0n }],
     enabledByDefault: true,
+    // marks your own messages (data-is-self), which the message sides option needs
+    dependencies: ["ThemeAttributes"],
     settings,
 
     // "Start an Activity": conditional renders at the call sites (toggling never breaks hook order)
@@ -396,6 +410,20 @@ export default definePlugin({
                 },
             ],
         },
+        {
+            // minimized stream: stays where you drop it (near a corner it still snaps there)
+            find: "calculateDecayingPosition(",
+            replacement: [
+                {
+                    match: /switch\((\i)\)\{case \i\.\i\.TOP_LEFT:return\{y:(\i),x:(\i)\};case \i\.\i\.BOTTOM_LEFT:return\{y:(\i),x:\i\};case \i\.\i\.TOP_RIGHT:return\{y:\i,x:(\i)\}/,
+                    replace: "{const dzp=$self.pipFree($2,$3,$4,$5);if(dzp)return dzp}$&",
+                },
+                {
+                    match: /handleDragEnd=\((\i),(\i)\)=>\{/,
+                    replace: "$&if($self.pipDrop(this,$1,$2))return;",
+                },
+            ],
+        },
     ],
 
     flux: {
@@ -405,6 +433,9 @@ export default definePlugin({
     },
 
     showActivities: () => settings.store.showActivities,
+    pipFree,
+    pipDrop,
+    overlayAction,
     connectionIcon,
     connectionIconLoaded,
     RoleCount,
@@ -423,9 +454,9 @@ export default definePlugin({
     // every step on its own: one that fails (a Discord update, an unusual setup) is recorded for the debug info
     // and the rest still starts, instead of the whole look silently not applying
     async start() {
+        safely("theme", useBuiltInTheme); // first, so the look is there on the first frame
         try { await migrate(); } catch (e) { recordError("migrate", e); }
         try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
-        safely("themeLink", pinThemeLink);
         safely("motion", () => {
             setPauseWhenUnfocused(settings.store.pauseUnfocused);
             startMotion();
@@ -435,13 +466,17 @@ export default definePlugin({
         safely("logo", loadUploadedLogo);
         safely("files", loadStoredFiles);
         safely("branding", startBranding);
+        safely("shapes", startShapes);
+        safely("bulk", startBulk);
+        safely("afk", startAfk);
+        safely("calls", startCall);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
         safely("badges", startBadges); // before the creator badge, which then shows first
         safely("creatorBadges", () => {
             addProfileBadge(creatorBadge);
             addProfileBadge(vrocaBadge);
         });
-        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS });
+        badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS + SHAPES_CSS + BULK_CSS + AFK_CSS + CALL_CSS });
         document.head.append(badgeStyle);
         safely("menus", () => addGlobalContextMenuPatch(menuPatch));
         document.addEventListener("click", onDocClick, true);
@@ -450,7 +485,7 @@ export default definePlugin({
 
         safely("updated", () => announceUpdated(settings.store.lastVersion));
         settings.store.lastVersion = VERSION;
-        safely("updates", () => startAutoCheck(() => settings.store.autoUpdateCheck));
+        safely("updates", () => startAutoCheck(() => settings.store.autoUpdateCheck, () => settings.store.autoUpdate));
     },
 
     stop() {
@@ -468,6 +503,13 @@ export default definePlugin({
         cancelPreview();
         stopMotion();
         stopBranding();
+        stopShapes();
+        stopBulk();
+        stopAfk();
+        stopCall();
+        stopOverlay();
+        forgetOverlay();
         removeAll();
+        safely("theme", leaveThemeLink);
     },
 });

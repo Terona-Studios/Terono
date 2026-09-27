@@ -115,7 +115,7 @@ function toggle(p: Plugin): boolean {
 
 /* ================= list ================= */
 
-function Row({ plugin }: { plugin: Plugin; }) {
+export function Row({ plugin }: { plugin: Plugin; }) {
     // shown right away; the plugin catches up in the background (or after the restart)
     const [on, setOn] = useState(() => isPluginEnabled(plugin.name));
     const waiting = on !== !!plugin.started;
@@ -142,12 +142,14 @@ function Row({ plugin }: { plugin: Plugin; }) {
 
 const FILTERS = ["All", "Recommended", "On", ...CATEGORIES.map(([c]) => c), OTHER];
 
-export function PluginHub() {
-    const [query, setQuery] = useState("");
-    const [filter, setFilter] = useState("All");
+// the plugins themselves never change while Discord runs
+let allCache: Plugin[] | null = null;
+export const listedPlugins = () => allCache ??= Object.values(plugins).filter(listed).sort((a, b) => a.name.localeCompare(b.name));
 
-    // the plugins themselves never change while Discord runs
-    const all = useMemo(() => Object.values(plugins).filter(listed).sort((a, b) => a.name.localeCompare(b.name)), []);
+export function PluginHub() {
+    const [filter, setFilter] = useState("All");
+    const all = listedPlugins();
+    const query = "";
     const filters = useMemo(() => FILTERS.filter(f => f === "All" || f === "Recommended" || f === "On" || all.some(p => (CATEGORY_OF.get(p.name) ?? OTHER) === f)), [all]);
 
     const q = query.trim().toLowerCase();
@@ -167,21 +169,12 @@ export function PluginHub() {
     return (
         <div className="dz-hub">
             <div className="dz-hub-bar">
-                <input
-                    className="dz-hub-search"
-                    type="search"
-                    placeholder={`Search ${all.length} plugins by name or what they do`}
-                    value={query}
-                    onChange={e => setQuery(e.currentTarget.value)}
-                    autoFocus
-                />
                 <div className="dz-hub-filters" role="tablist">
                     {filters.map(f => (
                         <button key={f} role="tab" aria-selected={f === filter} className="dz-hub-filter" onClick={() => setFilter(f)}>{f}</button>
                     ))}
                 </div>
             </div>
-            {!shown.length && <p className="dz-hub-empty">No plugin matches “{query}”.</p>}
             {[...groups].filter(([, list]) => list.length).map(([cat, list]) => (
                 <section key={cat} className="dz-set-group">
                     <h3 className="dz-set-group-title">{cat} <span className="dz-hub-count">{list.length}</span></h3>

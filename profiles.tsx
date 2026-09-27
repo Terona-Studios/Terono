@@ -20,13 +20,13 @@ const OLD_FORMAT = "darkness-profile";
 const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 const GROUPS: Record<string, { label: string; keys: string[]; }> = {
-    colors: { label: "Colors", keys: ["accentPreset", "accent", "customText", "textColor", "customIcons", "iconColor", "voice", "close", "minimize", "maximize"] },
+    colors: { label: "Colors", keys: ["accentPreset", "accent", "customText", "textColor", "customIcons", "iconColor", "voice", "close", "minimize", "maximize", "appBorder", "borderColor", "borderColor2", "appBorderWidth"] },
     cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed",
         "embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
     background: { label: "Background", keys: ["background", "bgBase", "bgColor1", "bgColor2", "bgMediaSource", "bgMediaUrl", "bgMediaDim"] },
-    layout: { label: "Layout & logo", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite", "pauseUnfocused", "appName", "appIcon"] },
+    layout: { label: "Layout & logo", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite", "pauseUnfocused", "bulkMode", "homeDoubleClick", "afkMode", "afkStatus", "callLook", "callCircles", "callWave", "callLiveRing", "callLayout", "callAmbient", "callSide", "pipShape", "pipX", "pipY", "overlayShow", "overlayKey", "overlayCorner", "overlayCompact", "overlayToasts", "overlayOpacity", "autoUpdate"] },
     header: { label: "Channel header", keys: ["headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch", "headerHiddenButtons"] },
-    chat: { label: "Chat bar & activities", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities"] },
+    chat: { label: "Chat bar & activities", keys: ["chatTranslate", "chatGif", "chatEmoji", "chatSticker", "chatGift", "chatApps", "chatOtherVencord", "showActivities", "chatSides"] },
     menus: { label: "Menus", keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] },
     translate: { label: "Translate", keys: ["autoTranslate", "keepLanguages"] },
 };

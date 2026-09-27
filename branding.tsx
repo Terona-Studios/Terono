@@ -6,20 +6,12 @@
 
 import * as DataStore from "@api/DataStore";
 import { Button } from "@components/Button";
-import { PluginNative } from "@utils/types";
 import { showToast, Toasts, useEffect, useState } from "@webpack/common";
 
-import { TERONO_LOGO } from "./assets";
-import { settings } from "./settings";
 
-// Make Discord your own app: its name in the window title, its window / taskbar icon, and any icon inside it
-// swapped for your own picture. The desktop app does the title and window icon in the main process (native.ts);
-// in the browser the tab title and tab icon change instead.
-
-const Native = IS_DISCORD_DESKTOP ? VencordNative.pluginHelpers.Terono as PluginNative<typeof import("./native")> : null;
+// Any of Discord's icons swapped for your own picture.
 
 const SWAPS_KEY = "Terono_iconSwaps";
-const APP_ICON_KEY = "Terono_appIcon";
 
 // places you can give your own icon; "custom:<name>" entries match any button by its name (the hover text)
 export const ICON_SPOTS: [key: string, label: string, selector: string][] = [
@@ -38,11 +30,7 @@ export const ICON_SPOTS: [key: string, label: string, selector: string][] = [
 ];
 
 let swaps: Record<string, string> = {};
-let appIconData: string | null = null;
 let css: HTMLStyleElement | null = null;
-let titleObs: MutationObserver | null = null;
-let favicon: HTMLLinkElement | null = null;
-let originalFavicon: string | null = null;
 
 const cssString = (v: string) => v.replace(/["\\\n\r]/g, "");
 
@@ -60,53 +48,16 @@ function applySwaps() {
     css.textContent = rules.join("\n");
 }
 
-/* ---------- title + app icon ---------- */
-
-function webTitle() {
-    const name = settings.store.appName.trim();
-    if (name && /\bDiscord\b/.test(document.title)) document.title = document.title.replace(/\bDiscord\b/g, () => name);
-}
-
-function webIcon(url: string | null) {
-    const link = document.querySelector<HTMLLinkElement>('link[rel~="icon"]');
-    if (!link) return;
-    originalFavicon ??= link.href;
-    favicon = link;
-    link.href = url ?? originalFavicon;
-}
-
-export function applyAppIdentity() {
-    const s = settings.store;
-    const icon = s.appIcon === "terono" ? TERONO_LOGO : s.appIcon === "file" ? appIconData : null;
-    if (Native) {
-        Native.setAppName(s.appName ?? "").catch(() => { });
-        Native.setAppIcon(s.appIcon ?? "discord", s.appIcon === "file" ? appIconData ?? undefined : undefined).catch(() => { });
-    } else {
-        webTitle();
-        titleObs ??= new MutationObserver(webTitle);
-        const title = document.querySelector("title");
-        if (title) titleObs.observe(title, { childList: true, characterData: true, subtree: true });
-        webIcon(icon);
-    }
-}
-
 export async function startBranding() {
     swaps = await DataStore.get(SWAPS_KEY) ?? {};
-    appIconData = await DataStore.get(APP_ICON_KEY) ?? null;
     applySwaps();
-    applyAppIdentity();
+    // left over from the removed app icon option (1.0.8)
+    DataStore.del("Terono_appIcon");
 }
 
 export function stopBranding() {
     css?.remove();
     css = null;
-    titleObs?.disconnect();
-    titleObs = null;
-    if (favicon && originalFavicon) favicon.href = originalFavicon;
-    if (Native) {
-        Native.setAppName("").catch(() => { });
-        Native.setAppIcon("discord").catch(() => { });
-    }
 }
 
 /* ---------- pictures ---------- */
@@ -136,28 +87,6 @@ function pickImage(onPicked: (file: File) => void) {
         onPicked(f);
     };
     input.click();
-}
-
-export function AppIconFile() {
-    const [preview, setPreview] = useState(appIconData);
-    return (
-        <div className="dz-appicon">
-            {preview ? <img src={preview} alt="" /> : <span className="dz-appicon-empty">No picture yet</span>}
-            <Button size="small" onClick={() => pickImage(async f => {
-                try {
-                    const url = await toPng(f, 256);
-                    appIconData = url;
-                    await DataStore.set(APP_ICON_KEY, url);
-                    setPreview(url);
-                    settings.store.appIcon = "file";
-                    applyAppIdentity();
-                    showToast("App icon changed.", Toasts.Type.SUCCESS);
-                } catch {
-                    showToast("That image couldn't be read.", Toasts.Type.FAILURE);
-                }
-            })}>Choose picture</Button>
-        </div>
-    );
 }
 
 export function IconSwaps() {
@@ -217,9 +146,6 @@ export function IconSwaps() {
 }
 
 export const BRANDING_CSS = `
-.dz-appicon { display: flex; align-items: center; gap: 14px; padding: 6px 0 12px; }
-.dz-appicon img { width: 48px; height: 48px; border-radius: 10px; }
-.dz-appicon-empty { font-size: 13px; color: var(--text-muted, #aaa); }
 .dz-swaps { padding: 6px 0 12px; }
 .dz-swap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
 .dz-swap { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 8px; border-radius: 12px; text-align: center;

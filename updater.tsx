@@ -36,7 +36,8 @@ interface UpdateInfo {
 
 export function isNewer(a: string, b: string) {
     const pa = a.split(".").map(Number), pb = b.split(".").map(Number);
-    for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return (pa[i] || 0) > (pb[i] || 0);
+    // 3 or 4 parts (1.0.8.1 comes after 1.0.8 and before 1.0.9)
+    for (let i = 0; i < 4; i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0);
     return false;
 }
 
@@ -49,7 +50,7 @@ async function check(): Promise<UpdateInfo> {
         if (!res.ok) return lastInfo = { error: `GitHub answered ${res.status}` };
         const data = await res.json();
         const version = String(data.tag_name ?? "").replace(/^v/, "");
-        return lastInfo = /^\d+\.\d+\.\d+$/.test(version)
+        return lastInfo = /^\d+(\.\d+){2,3}$/.test(version)
             ? { version, notes: String(data.body ?? "").slice(0, 2000), url: data.html_url, canUpdate: false }
             : { error: "No valid release found" };
     } catch (e) {
@@ -119,14 +120,16 @@ export function UpdatePanel() {
 let timer = 0;
 const notified = new Set<string>();
 
-export function startAutoCheck(enabled: () => boolean) {
+export function startAutoCheck(enabled: () => boolean, automatic: () => boolean) {
     const tick = async () => {
-        if (!enabled()) return;
+        if (!enabled() && !automatic()) return;
         const info = await check();
         const v = info.version;
         if (!v || !isNewer(v, VERSION) || notified.has(v)) return;
         notified.add(v);
         const canUpdate = !!Native && !!info.canUpdate;
+        if (canUpdate && automatic() && await updateQuietly(v)) return;
+        if (!enabled()) return;
         showNotification({
             title: "Terono update available",
             body: canUpdate ? `Terono ${v} is out. Click to update now.` : `Terono ${v} is out. Click to open the release.`,
@@ -136,6 +139,28 @@ export function startAutoCheck(enabled: () => boolean) {
     };
     window.setTimeout(tick, 15_000);
     timer = window.setInterval(tick, 6 * 60 * 60 * 1000);
+}
+
+// Automatic updates: the new version is downloaded and built in the background while Discord keeps running, and
+// used from the next start. A restart right away is offered, never forced.
+async function updateQuietly(version: string) {
+    const started = await Native!.beginUpdate(version);
+    if (!started.ok) return false;
+    for (let i = 0; i < 600; i++) {
+        await new Promise(r => setTimeout(r, 1000));
+        const s = await Native!.updateState();
+        if (s.error) return false;
+        if (s.done) {
+            showNotification({
+                title: `Terono ${version} is ready`,
+                body: "Updated in the background. It starts with Discord next time; click to restart now.",
+                icon: TERONO_LOGO,
+                onClick: () => Native!.restartDiscord(),
+            });
+            return true;
+        }
+    }
+    return false;
 }
 
 export function stopAutoCheck() {
@@ -218,7 +243,6 @@ function UpdateScreen({ version, onClose }: { version: string; onClose(): void; 
             <div className="dz-upd-glow" />
             <div className="dz-upd-card" role="dialog" aria-modal="true" aria-label="Terono update">
                 <div className="dz-upd-logo">
-                    <div className="dz-upd-ring" />
                     <img src={TERONO_LOGO} alt="" />
                     {phase === "done" && (
                         <div className="dz-upd-burst">
@@ -308,16 +332,9 @@ const CSS = `
 .dz-upd-leave .dz-upd-card { animation: dz-upd-card-out 200ms ease both; }
 
 .dz-upd-logo { position: relative; width: 108px; height: 108px; margin: 0 auto 18px; display: grid; place-items: center; }
-.dz-upd-logo img { position: relative; width: 62px; height: 62px; animation: dz-upd-float 2.6s ease-in-out infinite; }
-.dz-upd-ring { position: absolute; inset: 0; border-radius: 50%;
-    background: conic-gradient(from 0deg, transparent 0 35%, var(--dz-accent, #429cff) 78%, color-mix(in srgb, var(--dz-accent, #429cff) 40%, white) 100%);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-    animation: dz-upd-spin 1.1s linear infinite; }
-.dz-upd[data-phase="done"] .dz-upd-ring { background: var(--dz-accent, #429cff); animation: dz-upd-ring-done 700ms cubic-bezier(.2, .9, .25, 1.3) both; }
-.dz-upd[data-phase="done"] .dz-upd-logo img { animation: dz-upd-pop 650ms cubic-bezier(.2, .9, .25, 1.45) both; }
-.dz-upd[data-phase="error"] .dz-upd-ring { background: rgb(237 66 69); animation: dz-upd-shake 420ms ease both; }
-
+.dz-upd-logo img { position: relative; width: 72px; height: 72px; }
+.dz-upd[data-phase="done"] .dz-upd[data-phase="done"] .dz-upd-logo img { animation: dz-upd-pop 650ms cubic-bezier(.2, .9, .25, 1.45) both; }
+.dz-upd[data-phase="error"] 
 .dz-upd-burst i { position: absolute; left: 50%; top: 50%; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; opacity: 0;
     background: var(--dz-accent, #429cff); box-shadow: 0 0 10px var(--dz-accent, #429cff);
     animation: dz-upd-burst 950ms cubic-bezier(.15, .8, .3, 1) calc(var(--i) * 12ms) both; }
@@ -366,10 +383,8 @@ li[data-state="done"] .dz-upd-dot path { stroke-dasharray: 12; stroke-dashoffset
 @keyframes dz-upd-card { from { opacity: 0; transform: translateY(18px) scale(.94); } }
 @keyframes dz-upd-card-out { to { opacity: 0; transform: translateY(8px) scale(.97); } }
 @keyframes dz-upd-spin { to { transform: rotate(1turn); } }
-@keyframes dz-upd-float { 50% { transform: translateY(-4px); } }
 @keyframes dz-upd-breathe { 50% { transform: scale(1.08); opacity: .75; } }
 @keyframes dz-upd-pop { 0% { transform: scale(.7); } 60% { transform: scale(1.14); } 100% { transform: scale(1); } }
-@keyframes dz-upd-ring-done { from { transform: scale(.85); opacity: .3; } }
 @keyframes dz-upd-shake { 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
 @keyframes dz-upd-burst {
     0% { opacity: 1; transform: rotate(calc(var(--i) * 30deg)) translateY(0) scale(1); }
