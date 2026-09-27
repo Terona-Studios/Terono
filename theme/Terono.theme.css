@@ -3,7 +3,7 @@
  * @author Terona Studios
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 1.0.4
+ * @version 1.0.5
  * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -2690,4 +2690,12 @@ html:not([data-dz-plugin]) .container_a2f514 .tipTitle_a2f514 {
 @keyframes dz-loading-float {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-8px); }
+}
+
+/* ---------- server invite cards ----------
+   The collapsed card fades its text out under the Join/Accept footer with a gradient to its own background.
+   With the see-through surface color that gradient and the footer let the text show through behind the
+   button, so the card gets the solid card shade. */
+.guildInviteContainer__083ae {
+    --background-surface-high: var(--dz-solid-3);
 }

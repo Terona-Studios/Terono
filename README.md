@@ -104,8 +104,14 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Quick settings button** next to the back/forward arrows.
 - **Loading screens:** Terono logo and "Terono Discord" while Discord starts, updates and connects.
 - **Updates inside Discord:** check for a new version, update and restart without leaving Discord.
-- **Plugin hub:** turn related Vencord plugins (MessageLogger, ShowHiddenChannels, PinDMs and more) on and off instantly and set them up from one place. Ones that need a restart are listed under Updates.
+- **Plugins:** every Vencord plugin in one place, sorted by category, with search. Switch them on and off instantly and set them up. Ones that need a restart are listed under Updates.
+- **Badges:** everyone who uses Terono 1.0.5 – 1.1.5 gets the **Terono OG** badge. Add up to 3 badges of your own (any image, with a glow or outline in any color) and wear Discord's badges. Only people with Terono see them.
+- **Ctrl + 1** opens the Terono settings from anywhere (can be turned off).
 - **Performance mode** for slower PCs.
+
+## Found a bug?
+
+Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings.
 
 ## Updating
 

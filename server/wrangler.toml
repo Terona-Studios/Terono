@@ -1,0 +1,15 @@
+# Terono badges: a Cloudflare Worker with a D1 database. Setup steps: server/README.md
+name = "terono-badges"
+main = "src/worker.js"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+# Discord application (Developer Portal > your app > OAuth2 > Client ID). Public, not a secret.
+DISCORD_CLIENT_ID = "1553751124475908136"
+# The secret goes in with: npx wrangler secret put DISCORD_CLIENT_SECRET
+
+[[d1_databases]]
+binding = "DB"
+database_name = "terono-badges"
+database_id = "c8b27321-00e7-45a6-a21e-4ff76d35a57a"

@@ -4,12 +4,17 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { CspPolicies, ImageSrc } from "@main/csp";
 import { RendererSettings } from "@main/settings";
 import { app, IpcMainInvokeEvent } from "electron";
 import { join } from "path";
 
 import { TERONO_LOGO } from "./assets";
+import { BADGE_API, badgesReady } from "./badgeConfig";
 import { canUpdate, getState, latestRelease, startUpdate } from "./update";
+
+// the badge server: its list (connect-src) and uploaded badge pictures (img-src)
+if (badgesReady()) CspPolicies[new URL(BADGE_API).host] = ImageSrc;
 
 /* ================= in-app updater (called from the settings through VencordNative.pluginHelpers.Terono) ================= */
 

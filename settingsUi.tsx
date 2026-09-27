@@ -14,6 +14,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { OptionComponentMap } from "@components/settings/tabs/plugins/components";
 import { Modal, openModal, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
+import { BADGES_CSS, BadgesPanel } from "./badges";
 import { PluginHub } from "./hub";
 import { applyPreset, Preset, presetMatches, PRESETS, presetValues } from "./presets";
 import { startPreview } from "./preview";
@@ -84,21 +85,25 @@ const TABS: Tab[] = [
         groups: [{ keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] }],
     },
     {
-        id: "extras", label: "Extras", intro: "Auto-translate, performance and updates.",
+        id: "extras", label: "Extras", intro: "Auto-translate, performance, the settings shortcut and updates.",
         groups: [
             { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
             { title: "Performance", keys: ["lite"] },
+            { title: "Shortcut", keys: ["openKeybind"] },
             { title: "Updates", keys: ["autoUpdateCheck"] },
         ],
     },
+    { id: "badges", label: "Badges", intro: "Your Terono OG badge, up to 3 badges of your own and Discord's badges. Everyone who uses Terono sees them." },
     { id: "profiles", label: "Profiles", intro: "Save your look, switch between saved looks, share them as files.", groups: [{ keys: ["profiles"] }] },
     {
         id: "plugins", label: "Plugins",
-        intro: "Official Vencord plugins that go well with Terono, switched on and set up in one place. Vencord keeps them up to date. Plugins that change Discord's code apply after a restart, which the Updates box above offers.",
+        intro: "Every Vencord plugin, by category, switched on and set up in one place. Vencord keeps them up to date. Plugins that change Discord's code apply after a restart, which the Updates box above offers.",
     },
 ];
 
 let lastTab = "presets";
+
+export const REPORT_URL = "https://teronastudios.com/discord";
 
 // only this plugin's settings (a stable array: a new one every render would re-subscribe every render)
 const TERONO_PATHS = ["plugins.Terono.*"] as any[];
@@ -126,8 +131,11 @@ export function TeronoSettings() {
                 ))}
             </nav>
             <p className="dz-set-intro">{current.intro}</p>
+            <p className="dz-set-report">
+                Found a bug? Report it on the Terona Studios Discord: <a href={REPORT_URL} target="_blank" rel="noreferrer">teronastudios.com/discord</a>
+            </p>
             <div key={`${current.id}:${rev}`} className="dz-set-body">
-                {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
+                {current.id === "presets" ? <PresetGallery /> : current.id === "plugins" ? <PluginHub /> : current.id === "badges" ? <BadgesPanel /> : current.groups!.map((g, i) => <GroupBox key={i} group={g} />)}
             </div>
         </div>
     );
@@ -247,7 +255,7 @@ function ensureCss() {
     if (css?.isConnected) return;
     css = document.createElement("style");
     css.id = "terono-settings-ui";
-    css.textContent = CSS;
+    css.textContent = CSS + BADGES_CSS;
     document.head.append(css);
 }
 
@@ -262,6 +270,8 @@ const CSS = `
 .dz-set-tab[aria-selected="true"] { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff);
     box-shadow: 0 4px 14px color-mix(in srgb, var(--dz-accent, #429cff) 35%, transparent); }
 .dz-set-tab:focus-visible { outline: 2px solid var(--dz-accent, #429cff); outline-offset: 2px; }
+.dz-set-report { margin: -4px 0 0; text-align: center; font-size: 12px; color: var(--text-muted, #aaa); }
+.dz-set-report a { color: var(--dz-accent, #429cff); }
 .dz-set-intro { margin: 0; text-align: center; color: var(--text-muted, #aaa); font-size: 14px; }
 .dz-set-body { display: flex; flex-direction: column; gap: 14px; animation: dz-set-in 180ms ease both; }
 .dz-set-group { padding: 4px 16px 8px; border-radius: 14px; border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent);
@@ -295,7 +305,23 @@ const CSS = `
 .dz-hub-name { font: 600 15px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); transition: color 120ms ease; }
 .dz-hub-on .dz-hub-name { color: var(--dz-accent, #429cff); }
 .dz-hub-desc { margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--text-muted, #aaa); }
-.dz-hub-missing { opacity: .55; }
+.dz-hub-bar { display: flex; flex-direction: column; gap: 10px; }
+.dz-hub-search { width: 100%; box-sizing: border-box; height: 40px; padding: 0 14px; border-radius: 12px; font: 500 15px var(--font-primary, "gg sans", sans-serif);
+    color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 10%, transparent); outline: none; transition: border-color 140ms ease; }
+.dz-hub-search:focus { border-color: var(--dz-accent, #429cff); }
+.dz-hub-search::placeholder { color: var(--text-muted, #aaa); }
+.dz-hub-filters { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.dz-hub-filter { padding: 5px 11px; border-radius: 999px; cursor: pointer; font: 600 12px var(--font-primary, "gg sans", sans-serif);
+    color: var(--text-muted, #aaa); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); transition: background 140ms ease, color 140ms ease; }
+.dz-hub-filter:hover { color: var(--text-default, #fff); }
+.dz-hub-filter[aria-selected="true"] { color: #fff; border-color: transparent; background: var(--dz-accent, #429cff); }
+.dz-hub-empty { margin: 8px 0; text-align: center; color: var(--text-muted, #aaa); }
+.dz-hub-count { margin-left: 4px; opacity: .6; }
+.dz-hub-tag { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; vertical-align: 2px; font: 700 10px var(--font-primary, "gg sans", sans-serif);
+    letter-spacing: .03em; text-transform: uppercase; color: var(--dz-accent, #429cff); background: color-mix(in srgb, var(--dz-accent, #429cff) 14%, transparent); }
+.dz-hub-tag-restart { color: #f0b232; background: color-mix(in srgb, #f0b232 14%, transparent); }
 .dz-hub-gear { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; padding: 0; border-radius: 8px; cursor: pointer;
     color: var(--interactive-icon-default, var(--text-muted, #aaa)); background: none; transition: background 120ms ease, color 120ms ease; }
 .dz-hub-gear:hover { color: var(--interactive-icon-hover, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); }

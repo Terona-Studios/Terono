@@ -268,6 +268,11 @@ export const settings = definePluginSettings({
         description: "Check for Terono updates when Discord starts (and every few hours) and show a notification when one is out.",
         default: true,
     },
+    openKeybind: {
+        type: OptionType.BOOLEAN,
+        description: "Ctrl + 1 opens these settings from anywhere in Discord.",
+        default: true,
+    },
     lastVersion: {
         type: OptionType.STRING,
         description: "Terono version that last ran (shows the \"updated\" message once after an update).",
@@ -307,7 +312,7 @@ export const settings = definePluginSettings({
     },
     customIcons: {
         type: OptionType.BOOLEAN,
-        description: "Use your own color for icons (channel icons, header and chat bar buttons, settings icons). Off: icons follow the text color.",
+        description: "Use your own color for every icon: back/forward arrows, header buttons (pins, call, video), channel icons, the server list buttons, chat bar, member list and settings. Icons on filled buttons stay white. Off: icons follow the text color.",
         default: false,
         onChange: () => applyVars(),
     },
@@ -734,7 +739,7 @@ export const settings = definePluginSettings({
 
 // readable names in the settings screen (Vencord would otherwise title-case the keys, e.g. "Bg Media Dim")
 const NAMES: Record<string, string> = {
-    autoUpdateCheck: "Check for updates automatically",
+    autoUpdateCheck: "Check for updates automatically", openKeybind: "Ctrl + 1 shortcut",
     accentPreset: "Color preset", voice: "Voice & online", close: "Close button", minimize: "Minimize button", maximize: "Maximize button",
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
@@ -843,7 +848,17 @@ export function applyVars() {
 }${s.customIcons ? iconVars(pick("iconColor")) : ""}`);
 }
 
-// the theme sets these on body / .theme-*; "html" in front out-specifies it
+// Icons get their color from about ten different variables, several of which also color text, so the icons
+// themselves are recolored: every icon drawn in "currentColor", except inside filled buttons (white on color),
+// server folders (their own color) and anything with a color set on the icon itself. The variables still
+// cover icons drawn by CSS.
+const ICON_SKIP = [
+    ".primary_a22cb0", ".critical-primary_a22cb0", ".active_a22cb0", ".expressive_a22cb0", ".overlay-primary_a22cb0",
+    "[class*=colorBrand]", "[class*=colorGreen]", "[class*=colorRed]", "[class*=lookFilled]",
+    "[class*=colorDanger]", "[class*=colorPremium]", "[class*=folderIcon]", "[class*=expandedFolderIconWrapper]", ".vc-switch-container", ".dz-pv",
+].join(", ");
+const ICON = `svg:not([style*="color"], :is(${ICON_SKIP}) svg)`;
+
 function iconVars(c: string) {
     const up = (n: number) => `color-mix(in srgb, ${c}, var(--dz-text) ${n}%)`;
     return `
@@ -856,6 +871,13 @@ html body, html .theme-dark:not(.custom-user-profile-theme), html .theme-light:n
     --icon-muted: color-mix(in srgb, ${c} 70%, var(--dz-card));
     --icon-strong: ${up(35)};
     --channel-icon: ${c};
+}
+html[data-dz-plugin] ${ICON} {
+    color: ${c};
+}
+html[data-dz-plugin] :is(button, a, [role=button], [role=tab], [role=menuitem], [role=link], [role=treeitem]):hover ${ICON},
+html[data-dz-plugin] :is([aria-selected=true], [aria-checked=true], [aria-pressed=true], [aria-current=page]) ${ICON} {
+    color: ${up(45)};
 }`;
 }
 

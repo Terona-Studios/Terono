@@ -18,6 +18,7 @@ import { Message } from "@vencord/discord-types";
 import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpack/common";
 
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
+import { startBadges, stopBadges } from "./badges";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
@@ -28,6 +29,15 @@ import { VERSION } from "./version";
 /* ================= quick settings icon + header popouts =================
    The icon is a CSS ::after on the back/forward group (survives every re-render); a click on the
    group itself, right of the last arrow, can only be that icon. */
+
+// Ctrl + 1 opens the Terono settings (can be turned off under Extras)
+function onKeyDown(e: KeyboardEvent) {
+    if (!settings.store.openKeybind || !e.ctrlKey || e.shiftKey || e.altKey || e.metaKey || e.repeat) return;
+    if (e.code !== "Digit1" && e.code !== "Numpad1") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (!document.querySelector(".dz-set")) openPluginModal(plugins.Terono);
+}
 
 function onDocClick(e: MouseEvent) {
     const t = e.target as HTMLElement | null;
@@ -416,12 +426,14 @@ export default definePlugin({
         loadUploadedLogo();
         loadStoredFiles();
         SettingsStore.addGlobalChangeListener(onSettingsChange);
+        startBadges(); // before the creator badge, which then shows first
         addProfileBadge(creatorBadge);
         addProfileBadge(vrocaBadge);
         badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS });
         document.head.append(badgeStyle);
         addGlobalContextMenuPatch(menuPatch);
         document.addEventListener("click", onDocClick, true);
+        document.addEventListener("keydown", onKeyDown, true);
         syncChannelKind(SelectedChannelStore.getChannelId());
 
         announceUpdated(settings.store.lastVersion);
@@ -434,9 +446,11 @@ export default definePlugin({
         SettingsStore.removeGlobalChangeListener(onSettingsChange);
         removeProfileBadge(creatorBadge);
         removeProfileBadge(vrocaBadge);
+        stopBadges();
         badgeStyle?.remove();
         badgeStyle = null;
         document.removeEventListener("click", onDocClick, true);
+        document.removeEventListener("keydown", onKeyDown, true);
         detachHeader();
         stopAutoCheck();
         cancelPreview();

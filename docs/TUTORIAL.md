@@ -103,10 +103,13 @@ The theme alone uses the default Terono look: blue, dark cards, top server list.
 
 Either:
 
+- press **Ctrl + 1**, or
 - click the **Terono icon** next to the ← → arrows at the top left, or
 - **User Settings** (⚙ next to your name) → **Vencord** → **Plugins** → search **Terono** → ⚙.
 
-At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, Menus, Extras, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
+At the top is the **Updates** box. Below it are the tabs: **Presets, Colors, Cards, Background, Layout, Header, Chat & Members, Font & Logo, Menus, Extras, Badges, Profiles, Plugins**. Every change shows up straight away; there's nothing to save or restart.
+
+**Shortcut:** press **Ctrl + 1** anywhere in Discord to open the Terono settings. Turn it off under **Extras → Shortcut**.
 
 ---
 
@@ -131,7 +134,7 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 
 - **Color preset:** Blue, Red, Purple, Green, Pink or Orange, or use the **Primary color** picker under it for any color. It's used for buttons, links, mentions, selection and glow.
 - **Text:** turn on **Custom text color** and pick any **Text color**. Muted text (descriptions, timestamps) is made from it automatically.
-- **Icons:** turn on **Custom icon color** and pick an **Icon color** for channel icons, header, chat bar and settings icons. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
+- **Icons:** turn on **Custom icon color** and pick an **Icon color** for every icon: back/forward arrows, the header buttons (call, pins, add friend, search), channel icons, the server list buttons, the chat bar, the buttons next to your name and settings. Icons on colored buttons stay white, and server folders keep their own color. Hovered and selected icons get a bit brighter. Off, icons follow the text color.
 - **Status & window buttons:** the **Voice & online** color and the **Close**, **Minimize** and **Maximize** button colors.
 
 ### Cards (the panels)
@@ -200,7 +203,18 @@ In the **Profiles** tab:
 - **Menus tab:** hide right-click menu items by typing their exact names, comma separated: **In every menu**, **In the server menu** and **In user & DM menus**.
 - **Extras → Translate:** **Auto-translate** (off by default) translates messages you receive into English, using Vencord's Translate plugin (keep that plugin on). Add language codes to **Never translate** for languages you read yourself. Message text is sent to Google Translate while this is on.
 - **Extras → Updates:** **Check for updates automatically** at start and every few hours.
-- **Plugins tab:** turn on and set up Vencord plugins that go well with Terono from one list, e.g. MessageLogger, ShowHiddenChannels, PinDMs and more. Switches react straight away. Plugins that change Discord's own code need a restart: they're listed under **Restart to apply** in the Updates box at the top, with a **Restart Discord** button.
+- **Plugins tab:** every Vencord plugin in one list, sorted into categories (Chat & messages, Images, GIFs & video, Voice & calls, People & profiles, Servers & roles, and more). Type in the search bar to find one by name or by what it does, or pick a category, **Recommended** (the ones that go best with Terono) or **On**. Switches react straight away, and ⚙ opens a plugin's settings. Plugins that change Discord's own code need a restart: they get a **Restart to apply** tag and are listed in the Updates box at the top, with a **Restart Discord** button.
+
+### Badges
+
+In the **Badges** tab:
+
+- **Terono OG:** everyone who uses Terono between 1.0.5 and 1.1.5 gets this badge automatically, and keeps it.
+- **Connect with Discord** once: Discord asks you to **Authorize**. Terono only gets your user ID. This makes sure only you can change your badges.
+- **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
+- **Discord badges:** click the ones you want to wear (Nitro, Server Booster, HypeSquad, Early Supporter and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
+
+You see your changes right away. Everyone else who uses Terono sees them within 30 minutes; people without Terono don't see them at all.
 
 ### Performance
 
@@ -224,6 +238,8 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). 
 ---
 
 ## 9. Troubleshooting
+
+**Found a bug?** Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings.
 
 **My antivirus flagged `Install-Terono.cmd`.**
 That was the old installer. It downloaded and ran a PowerShell script in one go, which Windows Defender treats as suspicious (`Trojan:Win32/Commando.A!ml`), even though the script itself was harmless. Delete it and use **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** instead. It updates the same install, so your settings are kept.
