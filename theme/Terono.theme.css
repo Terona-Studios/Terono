@@ -3,7 +3,7 @@
  * @author Terona Studios
  * @source https://github.com/Terona-Studios/Terono
  * @website https://github.com/Terona-Studios/Terono
- * @version 1.0.5
+ * @version 1.0.6
  * @description Fast, customizable Discord theme by Terona Studios. Standalone: no remote theme imports. Pair with the Terono plugin for full customization.
  */
 
@@ -2305,15 +2305,19 @@ html[data-dz-guilds="bottom"] :is(.sidebar__5e434, .page__5e434) {
    When it can't stay in Discord's grid (right edge, or left edge with channels mirrored) it is pinned. */
 html:is([data-dz-guilds="right"], [data-dz-guilds="left"][data-dz-channels="right"]) .guilds__5e434 {
     position: fixed !important;
-    top: var(--custom-app-top-bar-height);
-    bottom: var(--gap);
+    /* fallbacks: a Discord without these variables would otherwise leave the list where it was (at the top) */
+    top: var(--custom-app-top-bar-height, 32px) !important;
+    bottom: var(--gap, 12px) !important;
     height: auto !important;
     margin: 0 !important;
+    rotate: none !important;
+    translate: none !important;
     z-index: 3;
 }
 
 html[data-dz-guilds="right"] .guilds__5e434 {
-    right: var(--gap);
+    right: var(--gap, 12px) !important;
+    left: auto !important;
 }
 
 html[data-dz-guilds="left"][data-dz-channels="right"] .guilds__5e434 {
@@ -2698,4 +2702,10 @@ html:not([data-dz-plugin]) .container_a2f514 .tipTitle_a2f514 {
    button, so the card gets the solid card shade. */
 .guildInviteContainer__083ae {
     --background-surface-high: var(--dz-solid-3);
+}
+
+/* Nitro page: buttons get the primary color as their background, so their text and icon stay white */
+:is(.shinyButton__6a443, .premiumSubscribeButton_d723f6),
+:is(.shinyButton__6a443, .premiumSubscribeButton_d723f6) :is(.contents__201d5, svg) {
+    color: #fff !important;
 }

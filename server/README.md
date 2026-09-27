@@ -39,7 +39,7 @@ npx wrangler d1 execute terono-badges --remote --command "DELETE FROM badges WHE
 npx wrangler d1 execute terono-badges --remote --command "DELETE FROM sessions WHERE user_id = 'USER_ID'"
 ```
 
-`UPDATE snapshot SET dirty = 1` makes the next download rebuild the list, so the change reaches everyone within about 30 minutes.
+`UPDATE snapshot SET dirty = 1` makes the next download rebuild the list. Changes made here (not through the plugin) reach people the next time Discord starts, or within a few hours.
 
 ## Local testing
 

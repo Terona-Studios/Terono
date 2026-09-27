@@ -22,7 +22,8 @@ import { VERSION } from "./version";
 const CACHE_KEY = "Terono_badgeList";
 const AUTH_KEY = "Terono_badgeAuth";
 const HELLO_KEY = "Terono_badgeHello";
-const REFRESH_MS = 30 * 60 * 1000;
+// changes arrive live; the full list is only downloaded at start, after a reconnect and every few hours
+const REFRESH_MS = 6 * 60 * 60 * 1000;
 export const MAX_CUSTOM = 3;
 
 // official-look badges (icons from Discord's own CDN); Discord Staff, Partner and Moderator Programs are left out
@@ -135,21 +136,84 @@ async function hello() {
 
 const onConnect = () => void hello();
 
+/* ---------- live: every change from everyone, as it happens ---------- */
+
+let socket: WebSocket | null = null;
+let retry = 0;
+let retryTimer = 0;
+let saveTimer = 0;
+let pingTimer = 0;
+let lastHeard = 0;
+let running = false;
+
+function connect() {
+    if (!running || !badgesReady() || socket) return;
+    const ws = socket = new WebSocket(`${BADGE_API.replace(/^http/, "ws")}/live`);
+    ws.onopen = () => {
+        // anything missed while disconnected
+        if (retry) refresh(true);
+        retry = 0;
+        lastHeard = Date.now();
+    };
+    ws.onmessage = e => {
+        lastHeard = Date.now();
+        if (e.data === "pong") return;
+        try {
+            const { u, e: entry } = JSON.parse(e.data);
+            if (typeof u !== "string") return;
+            if (entry) list[u] = entry;
+            else delete list[u];
+            clearTimeout(saveTimer);
+            saveTimer = window.setTimeout(() => DataStore.set(CACHE_KEY, list), 2000);
+        } catch { /* not ours */ }
+    };
+    ws.onclose = () => {
+        if (socket === ws) socket = null;
+        if (!running) return;
+        // 2s, 4s, 8s ... up to 5 minutes
+        retry = Math.min(retry + 1, 8);
+        clearTimeout(retryTimer);
+        retryTimer = window.setTimeout(connect, Math.min(2 ** retry * 1000, 300_000));
+    };
+}
+
+// a connection can die silently (sleep, network change): ping it, and start over when it stops answering
+function keepAlive() {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    if (Date.now() - lastHeard > 150_000) return socket.close();
+    socket.send("ping");
+}
+
+const onOnline = () => {
+    clearTimeout(retryTimer);
+    connect();
+};
+
 export function startBadges() {
+    running = true;
     addProfileBadge(frontBadges);
     addProfileBadge(officialBadges);
-    // last list first (instant), then the current one
+    // last list first (instant), then the current one, then live changes
     DataStore.get(CACHE_KEY).then(saved => { if (saved && !Object.keys(list).length) list = saved; });
-    refresh().then(hello);
+    refresh(true).then(hello);
+    connect();
+    pingTimer = window.setInterval(keepAlive, 60_000);
     timer = window.setInterval(() => refresh(), REFRESH_MS);
     FluxDispatcher.subscribe("CONNECTION_OPEN", onConnect);
+    window.addEventListener("online", onOnline);
 }
 
 export function stopBadges() {
+    running = false;
     removeProfileBadge(frontBadges);
     removeProfileBadge(officialBadges);
     clearInterval(timer);
+    clearTimeout(retryTimer);
+    clearInterval(pingTimer);
+    socket?.close();
+    socket = null;
     FluxDispatcher.unsubscribe("CONNECTION_OPEN", onConnect);
+    window.removeEventListener("online", onOnline);
 }
 
 /* ================= your own badges ================= */
@@ -259,7 +323,7 @@ function Slot({ index, saved, onSaved }: { index: number; saved?: CustomBadge; o
         try {
             const r = await api(`/me/badge/${index}`, "PUT", { name: d.name.trim(), effect: d.effect, color: d.color, image });
             set({ hash: r.hash, image: undefined });
-            showToast("Badge saved. You see it right away; others with Terono within 30 minutes.", Toasts.Type.SUCCESS);
+            showToast("Badge saved. Everyone with Terono sees it right away.", Toasts.Type.SUCCESS);
             onSaved();
         } catch (e) {
             showToast(`Couldn't save: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
@@ -325,7 +389,7 @@ export function BadgesPanel() {
     async function saveOfficial() {
         try {
             await api("/me/official", "PUT", { badges: official });
-            showToast("Saved. You see them right away; others with Terono within 30 minutes.", Toasts.Type.SUCCESS);
+            showToast("Saved. Everyone with Terono sees them right away.", Toasts.Type.SUCCESS);
             reload();
         } catch (e) {
             showToast(`Couldn't save: ${e instanceof Error ? e.message : e}`, Toasts.Type.FAILURE);
@@ -340,7 +404,7 @@ export function BadgesPanel() {
                     <img src={OG_BADGE} alt="" />
                     <p>{og
                         ? "You have the Terono OG badge: everyone who uses Terono between 1.0.5 and 1.1.5 gets it, for good."
-                        : "Everyone who uses Terono between 1.0.5 and 1.1.5 gets this badge. Yours is being added and shows up within 30 minutes."}</p>
+                        : "Everyone who uses Terono between 1.0.5 and 1.1.5 gets this badge. Yours is being added and shows up in a moment."}</p>
                 </div>
             </section>
 

@@ -19,6 +19,7 @@ import { ChannelStore, SelectedChannelStore, useEffect, UserStore } from "@webpa
 
 import { CREATOR_BADGE, VROCA_BADGE } from "./assets";
 import { startBadges, stopBadges } from "./badges";
+import { recordError, safely } from "./diagnostics";
 import { attachHeader, detachHeader, onHeaderClick } from "./header";
 import { applyPreset, PRESETS } from "./presets";
 import { cancelPreview, PREVIEW_CSS, restoreUnfinishedPreview } from "./preview";
@@ -254,7 +255,7 @@ function onSettingsChange(value: unknown, path: string) {
     if (!path.startsWith("plugins.Terono.") || pendingApply) return;
     pendingApply = requestAnimationFrame(() => {
         pendingApply = 0;
-        applyAll();
+        safely("apply", applyAll);
     });
 }
 
@@ -417,28 +418,32 @@ export default definePlugin({
         return !!p;
     },
 
+    // every step on its own: one that fails (a Discord update, an unusual setup) is recorded for the debug info
+    // and the rest still starts, instead of the whole look silently not applying
     async start() {
-        await migrate();
-        await restoreUnfinishedPreview();
-        pinThemeLink();
-        applyAll();
-        applyDarkerPalette();
-        loadUploadedLogo();
-        loadStoredFiles();
+        try { await migrate(); } catch (e) { recordError("migrate", e); }
+        try { await restoreUnfinishedPreview(); } catch (e) { recordError("preview", e); }
+        safely("themeLink", pinThemeLink);
+        safely("apply", applyAll);
+        safely("darkerPalette", applyDarkerPalette);
+        safely("logo", loadUploadedLogo);
+        safely("files", loadStoredFiles);
         SettingsStore.addGlobalChangeListener(onSettingsChange);
-        startBadges(); // before the creator badge, which then shows first
-        addProfileBadge(creatorBadge);
-        addProfileBadge(vrocaBadge);
+        safely("badges", startBadges); // before the creator badge, which then shows first
+        safely("creatorBadges", () => {
+            addProfileBadge(creatorBadge);
+            addProfileBadge(vrocaBadge);
+        });
         badgeStyle = Object.assign(document.createElement("style"), { id: "terono-badges", textContent: BADGE_CSS + PREVIEW_CSS });
         document.head.append(badgeStyle);
-        addGlobalContextMenuPatch(menuPatch);
+        safely("menus", () => addGlobalContextMenuPatch(menuPatch));
         document.addEventListener("click", onDocClick, true);
         document.addEventListener("keydown", onKeyDown, true);
-        syncChannelKind(SelectedChannelStore.getChannelId());
+        safely("channelKind", () => syncChannelKind(SelectedChannelStore.getChannelId()));
 
-        announceUpdated(settings.store.lastVersion);
+        safely("updated", () => announceUpdated(settings.store.lastVersion));
         settings.store.lastVersion = VERSION;
-        startAutoCheck(() => settings.store.autoUpdateCheck);
+        safely("updates", () => startAutoCheck(() => settings.store.autoUpdateCheck));
     },
 
     stop() {

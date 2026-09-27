@@ -22,6 +22,7 @@ const BASE: Record<string, string | number | boolean> = {
     accentPreset: "blue", accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
     cardPreset: "dark", cardFill: "solid", cardColor: "#070708", cardColor2: "#0b1a33", cardAngle: 135, textColor: "#f1f2f4",
     customText: false, customIcons: false,
+    embedStyle: "cards",
     cardShape: "curved", cardStyle: "solid", glassOpacity: 60, glassBlur: true, cardMedia: "none", cardMediaDim: 60,
     background: "animated", bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
     serverList: "top", serverListDirection: "ltr", channelsSide: "left", membersSide: "right",

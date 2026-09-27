@@ -37,10 +37,11 @@ const TABS: Tab[] = [
         ],
     },
     {
-        id: "cards", label: "Cards", intro: "The panels: their color, corners, glass effect and an optional picture or video inside them.",
+        id: "cards", label: "Cards", intro: "The panels: their color, corners, glass or liquid glass, embeds in chat and an optional picture or video inside them.",
         groups: [
             { title: "Card colors", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle"] },
-            { title: "Shape & material", keys: ["cardShape", "cardStyle", "glassOpacity", "glassBlur"] },
+            { title: "Shape & material", keys: ["cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed"] },
+            { title: "Embeds (link previews)", keys: ["embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity"] },
             { title: "Picture or video in the cards", keys: ["cardMedia", "cardMediaUrl", "cardMediaFile", "cardMediaDim"] },
         ],
     },
@@ -75,7 +76,7 @@ const TABS: Tab[] = [
     {
         id: "branding", label: "Font & Logo", intro: "Font, home logo, the quick settings icon and loading screens.",
         groups: [
-            { title: "Font", keys: ["font", "fontFile"] },
+            { title: "Font", keys: ["fontPicker", "fontFile"] },
             { title: "Home logo", keys: ["logoSource", "logoUrl", "logoFile", "logoSize"] },
             { title: "Icon & loading screens", keys: ["quickIcon", "loadingScreen"] },
         ],
@@ -85,12 +86,13 @@ const TABS: Tab[] = [
         groups: [{ keys: ["hiddenMenuItems", "hiddenServerMenu", "hiddenUserMenu"] }],
     },
     {
-        id: "extras", label: "Extras", intro: "Auto-translate, performance, the settings shortcut and updates.",
+        id: "extras", label: "Extras", intro: "Auto-translate, performance, the settings shortcut, updates and troubleshooting.",
         groups: [
             { title: "Translate", keys: ["autoTranslate", "keepLanguages"] },
             { title: "Performance", keys: ["lite"] },
             { title: "Shortcut", keys: ["openKeybind"] },
             { title: "Updates", keys: ["autoUpdateCheck"] },
+            { title: "Troubleshooting", keys: ["debugInfo"] },
         ],
     },
     { id: "badges", label: "Badges", intro: "Your Terono OG badge, up to 3 badges of your own and Discord's badges. Everyone who uses Terono sees them." },
@@ -305,6 +307,17 @@ const CSS = `
 .dz-hub-name { font: 600 15px var(--font-primary, "gg sans", sans-serif); color: var(--text-default, #fff); transition: color 120ms ease; }
 .dz-hub-on .dz-hub-name { color: var(--dz-accent, #429cff); }
 .dz-hub-desc { margin-top: 2px; font-size: 13px; line-height: 1.35; color: var(--text-muted, #aaa); }
+.dz-fonts { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding: 6px 0 12px; }
+.dz-font { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; border-radius: 12px; cursor: pointer; text-align: left;
+    color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 4%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dz-text, #f1f2f4) 8%, transparent); transition: border-color 120ms ease, background 120ms ease; }
+.dz-font:hover { border-color: color-mix(in srgb, var(--dz-accent, #429cff) 50%, transparent); }
+.dz-font[aria-checked="true"] { border-color: var(--dz-accent, #429cff); background: color-mix(in srgb, var(--dz-accent, #429cff) 14%, transparent); }
+.dz-font-name { font-size: 15px; font-weight: 500; line-height: 1.25; }
+.dz-font-sample { font-size: 12px; font-weight: 500; color: var(--text-muted, #aaa); }
+.dz-debug { padding: 6px 0 12px; }
+.dz-debug p { margin: 0 0 10px; font-size: 13px; line-height: 1.45; color: var(--text-muted, #aaa); }
+
 .dz-hub-bar { display: flex; flex-direction: column; gap: 10px; }
 .dz-hub-search { width: 100%; box-sizing: border-box; height: 40px; padding: 0 14px; border-radius: 12px; font: 500 15px var(--font-primary, "gg sans", sans-serif);
     color: var(--text-default, #fff); background: color-mix(in srgb, var(--dz-text, #f1f2f4) 5%, transparent);

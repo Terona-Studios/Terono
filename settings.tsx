@@ -5,13 +5,14 @@
  */
 
 import * as DataStore from "@api/DataStore";
-import { definePluginSettings } from "@api/Settings";
+import { definePluginSettings, useSettings } from "@api/Settings";
 import { HeadingTertiary } from "@components/Heading";
 import { Paragraph } from "@components/Paragraph";
 import { OptionType } from "@utils/types";
 import { showToast, Toasts, useEffect, useRef, useState } from "@webpack/common";
 
 import { TERONO_LOGO } from "./assets";
+import { DebugInfo } from "./diagnostics";
 import { attachHeader } from "./header";
 import { HSL_BOTTOM_CSS, HSL_CSS } from "./hsl";
 import { ProfilesPanel } from "./profiles";
@@ -45,12 +46,13 @@ const RADII: Record<string, [number, number, number, number, number]> = {
 };
 
 export type ColorKey = "accent" | "voice" | "close" | "minimize" | "maximize"
-    | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2";
+    | "cardColor" | "cardColor2" | "textColor" | "iconColor" | "bgBase" | "bgColor1" | "bgColor2" | "embedColor" | "embedColor2";
 
 const COLOR_DEFAULTS: Record<ColorKey, string> = {
     accent: "#429cff", voice: "#35b889", close: "#d94a5d", minimize: "#d29b2e", maximize: "#35b889",
     cardColor: "#070708", cardColor2: "#0b1a33", textColor: "#f1f2f4", iconColor: "#9ea3ab",
     bgBase: "#000000", bgColor1: "#429cff", bgColor2: "#0b2a55",
+    embedColor: "#16181d", embedColor2: "#0b2a55",
 };
 
 /* ================= live color preview =================
@@ -151,6 +153,36 @@ function LogoUpload() {
                 <Paragraph>PNG, JPG, GIF, WEBP or SVG up to 5 MB. Stored only on this PC.</Paragraph>
                 <input type="file" accept={LOGO_TYPES.join(",")} onChange={e => onFile(e.currentTarget.files?.[0])} style={{ marginTop: 6, color: "var(--text-default)" }} />
             </div>
+        </div>
+    );
+}
+
+/* ================= font picker ================= */
+
+// one fixed list: the picker only listens to the font setting
+const FONT_PATH = ["plugins.Terono.font"] as any[];
+
+function FontPicker() {
+    useSettings(FONT_PATH);
+    const current = settings.store.font;
+    useEffect(loadFontPreviews, []);
+    const { options } = (settings.def.font as { options: { label: string; value: string; }[]; });
+
+    return (
+        <div className="dz-fonts" role="radiogroup" aria-label="Font">
+            {options.map(o => (
+                <button
+                    key={o.value}
+                    role="radio"
+                    aria-checked={current === o.value}
+                    className="dz-font"
+                    style={{ fontFamily: fontStack(o.value) }}
+                    onClick={() => { settings.store.font = o.value; applyFont(); }}
+                >
+                    <span className="dz-font-name">{o.label}</span>
+                    <span className="dz-font-sample">Aa Bb Cc 123</span>
+                </button>
+            ))}
         </div>
     );
 }
@@ -283,6 +315,10 @@ export const settings = definePluginSettings({
         type: OptionType.COMPONENT,
         component: () => <ProfilesPanel />,
     },
+    debugInfo: {
+        type: OptionType.COMPONENT,
+        component: () => <DebugInfo />,
+    },
 
     /* --- accent --- */
     accentPreset: {
@@ -365,10 +401,11 @@ export const settings = definePluginSettings({
     },
     cardStyle: {
         type: OptionType.SELECT,
-        description: "Panel material. Glass only affects the big panels; buttons, menus and popups stay solid.",
+        description: "Panel material. Glass: see-through panels. Liquid glass: blurred see-through panels with light slowly flowing over them. Only the big panels change; buttons, menus and popups stay solid. Liquid glass costs a little performance (off in Performance mode).",
         options: [
             { label: "Solid", value: "solid", default: true },
             { label: "Glass", value: "glass" },
+            { label: "Liquid glass", value: "liquid" },
         ],
         onChange: () => applyAll(),
     },
@@ -378,7 +415,7 @@ export const settings = definePluginSettings({
         markers: [20, 35, 50, 65, 80, 95],
         default: 60,
         stickToMarkers: false,
-        hidden: () => settings.store.cardStyle !== "glass",
+        hidden: () => settings.store.cardStyle === "solid",
         onChange: () => applyVars(),
     },
     cardMedia: {
@@ -410,6 +447,60 @@ export const settings = definePluginSettings({
         default: 60,
         stickToMarkers: false,
         hidden: () => settings.store.cardMedia === "none",
+    },
+    liquidColor: {
+        type: OptionType.SELECT,
+        description: "Color of the flowing light.",
+        options: [
+            { label: "Primary + background colors", value: "theme", default: true },
+            { label: "White (clear glass)", value: "white" },
+        ],
+        hidden: () => settings.store.cardStyle !== "liquid",
+        onChange: () => applyLiquid(),
+    },
+    liquidSpeed: {
+        type: OptionType.SELECT,
+        description: "How fast the light flows.",
+        options: [
+            { label: "Slow", value: "slow", default: true },
+            { label: "Medium", value: "medium" },
+            { label: "Fast", value: "fast" },
+        ],
+        hidden: () => settings.store.cardStyle !== "liquid",
+        onChange: () => applyLiquid(),
+    },
+
+    /* --- embeds (link previews) --- */
+    embedStyle: {
+        type: OptionType.SELECT,
+        description: "Link previews and bot embeds in chat.",
+        options: [
+            { label: "Like the cards", value: "cards", default: true },
+            { label: "One color", value: "solid" },
+            { label: "Gradient", value: "gradient" },
+            { label: "Glass", value: "glass" },
+        ],
+        onChange: () => applyAll(),
+    },
+    embedColor: color("embedColor", "Embed color", "Fill of embeds (gradient start). Their text turns dark or light to stay readable.", () => settings.store.embedStyle === "cards"),
+    embedColor2: color("embedColor2", "Embed gradient end", "Second color of the embed gradient.", () => settings.store.embedStyle !== "gradient"),
+    embedAngle: {
+        type: OptionType.SLIDER,
+        description: "Embed gradient angle (degrees).",
+        markers: [0, 45, 90, 135, 180, 225, 270, 315, 360],
+        default: 135,
+        stickToMarkers: false,
+        hidden: () => settings.store.embedStyle !== "gradient",
+        onChange: () => applyVars(),
+    },
+    embedOpacity: {
+        type: OptionType.SLIDER,
+        description: "Embed glass opacity (%).",
+        markers: [10, 25, 40, 55, 70, 85],
+        default: 40,
+        stickToMarkers: false,
+        hidden: () => settings.store.embedStyle !== "glass",
+        onChange: () => applyVars(),
     },
     glassBlur: {
         type: OptionType.BOOLEAN,
@@ -551,11 +642,11 @@ export const settings = definePluginSettings({
             { label: "JetBrains Mono", value: "jetbrains" },
             { label: "Custom (upload)", value: "custom" },
         ],
-        // each font's name drawn in that font
-        componentProps: {
-            renderOptionLabel: (o: { label: string; value: string; }) => <span style={{ fontFamily: fontStack(o.value) }}>{o.label}</span>,
-            renderOptionValue: ([o]: { label: string; value: string; }[]) => o && <span style={{ fontFamily: fontStack(o.value) }}>{o.label}</span>,
-        },
+    },
+    // the screen shows this picker instead of a dropdown: every font's name written in that font
+    fontPicker: {
+        type: OptionType.COMPONENT,
+        component: () => <FontPicker />,
     },
     fontFile: {
         type: OptionType.COMPONENT,
@@ -744,12 +835,14 @@ const NAMES: Record<string, string> = {
     cardPreset: "Card colors", cardFill: "Fill", cardColor: "Card color", cardColor2: "Gradient end", cardAngle: "Gradient angle", textColor: "Text color",
     customText: "Custom text color", customIcons: "Custom icon color",
     cardShape: "Corners", cardStyle: "Material", glassOpacity: "Glass opacity", glassBlur: "Glass blur",
+    liquidColor: "Light color", liquidSpeed: "Flow speed",
+    embedStyle: "Embed style", embedColor: "Embed color", embedColor2: "Gradient end", embedAngle: "Gradient angle", embedOpacity: "Glass opacity",
     cardMedia: "Picture or video", cardMediaUrl: "Link", cardMediaDim: "Card color over it",
     background: "Background", bgMediaSource: "Source", bgMediaUrl: "Link", bgMediaDim: "Darken",
     bgBase: "Base color", bgColor1: "Glow color 1", bgColor2: "Glow color 2",
     serverList: "Server list", serverListDirection: "Server order", channelsSide: "Channel list side", membersSide: "Member list side",
     roleCount: "Role count", roleCountCustom: "Custom role count",
-    font: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
+    font: "Font", fontPicker: "Font", logoSource: "Logo source", logoUrl: "Logo link", logoSize: "Logo size",
     quickIcon: "Quick settings icon", loadingScreen: "Terono loading screens",
     headerName: "Channel name", headerHash: "# icon", headerButtons: "Buttons", headerSearch: "Search bar", headerFollow: "Follow button",
     dmHeaderName: "Name & avatar", dmHeaderButtons: "Buttons", dmHeaderSearch: "Search bar", headerHiddenButtons: "Hide buttons by name",
@@ -793,7 +886,7 @@ export function useSettingsRevision() {
 
 /* ================= apply (split so each change only touches what it needs) ================= */
 
-const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null };
+const sheets: Record<"vars" | "logo" | "chat" | "header" | "hsl" | "font" | "media" | "darker" | "loading" | "embeds" | "liquid", HTMLStyleElement | null> = { vars: null, logo: null, chat: null, header: null, hsl: null, font: null, media: null, darker: null, loading: null, embeds: null, liquid: null };
 
 function sheet(name: keyof typeof sheets, css: string) {
     let el = sheets[name];
@@ -812,7 +905,7 @@ const pick = (id: ColorKey) => {
 
 function cardAlpha(s: typeof settings.store) {
     if (cardActive) return Math.max(0, Number(s.cardMediaDim ?? 60));
-    return s.cardStyle === "glass" ? Number(s.glassOpacity) || 60 : 100;
+    return s.cardStyle === "glass" || s.cardStyle === "liquid" ? Number(s.glassOpacity) || 60 : 100;
 }
 
 // html:root out-specifies the theme's :root defaults regardless of load order
@@ -845,7 +938,29 @@ export function applyVars() {
     --radius-lg: ${lg}px;
     --radius-xl: ${xl}px;
     --dz-logo-size: ${Number(s.logoSize) || 72}%;
-}${s.customIcons ? iconVars(pick("iconColor")) : ""}`);
+    --dz-embed-1: ${pick("embedColor")};
+    --dz-embed-2: ${s.embedStyle === "gradient" ? pick("embedColor2") : pick("embedColor")};
+    --dz-embed-angle: ${Number(s.embedAngle) || 0}deg;
+    --dz-embed-alpha: ${Number(s.embedOpacity) || 40}%;
+}${embedText(s)}${s.customIcons ? iconVars(pick("iconColor")) : ""}`);
+}
+
+// Solid / gradient embeds: text dark or light, whichever reads better on the chosen colors
+function luminance(hex: string) {
+    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function embedText(s: typeof settings.store) {
+    if (s.embedStyle !== "solid" && s.embedStyle !== "gradient") return "";
+    const l = (luminance(pick("embedColor")) + luminance(s.embedStyle === "gradient" ? pick("embedColor2") : pick("embedColor"))) / 2;
+    const [text, muted] = l > 0.4 ? ["#111214", "#3c3f45"] : ["#f2f3f5", "#b5bac1"];
+    return `
+html[data-dz-embed] ${EMBED} {
+    --text-default: ${text}; --text-normal: ${text}; --text-strong: ${text}; --header-primary: ${text}; --interactive-text-default: ${text};
+    --text-muted: ${muted}; --text-subtle: ${muted}; --header-secondary: ${muted};${l > 0.4 ? " --text-link: #0b57d0;" : ""}
+    color: ${text};
+}`;
 }
 
 // Icons get their color from about ten different variables, several of which also color text, so the icons
@@ -989,9 +1104,13 @@ export function applyAttrs() {
     d.dzGuilds = s.serverList;
     d.dzChannels = s.channelsSide;
     d.dzMembers = s.membersSide;
-    flag("dzGlass", s.cardStyle === "glass" || cardActive);
+    flag("dzGlass", s.cardStyle === "glass" || s.cardStyle === "liquid" || cardActive);
     flag("dzCardMedia", cardActive);
-    flag("dzGlassBlur", s.cardStyle === "glass" && s.glassBlur);
+    flag("dzGlassBlur", (s.cardStyle === "glass" && s.glassBlur) || s.cardStyle === "liquid");
+    flag("dzLiquid", s.cardStyle === "liquid");
+    if (s.embedStyle && s.embedStyle !== "cards") d.dzEmbed = s.embedStyle;
+    else delete d.dzEmbed;
+    sheet("embeds", EMBED_CSS);
     flag("dzActivities", s.showActivities);
     flag("dzLite", s.lite);
     flag("dzQuick", s.quickIcon);
@@ -1014,7 +1133,7 @@ let previewLink: HTMLLinkElement | null = null;
 export function loadFontPreviews() {
     if (previewLink?.isConnected) return;
     const families = Object.values(FONTS).filter(Boolean);
-    const text = [...new Set(families.join("") + "Terono()Custom upload")].sort().join("");
+    const text = [...new Set(families.join("") + "Terono()Custom uploadDiscordgs AaBbCc123")].sort().join("");
     previewLink = document.head.appendChild(document.createElement("link"));
     previewLink.rel = "stylesheet";
     previewLink.href = `https://fonts.googleapis.com/css2?${families.map(f => `family=${encodeURIComponent(f)}:wght@500`).join("&")}&text=${encodeURIComponent(text)}&display=swap`;
@@ -1132,8 +1251,8 @@ let cardUrl: string | null = null;
 let cardTimer = 0;
 let cardPath = "";
 
-function cardOutline() {
-    const base = cardLayer!.getBoundingClientRect();
+// outline of every panel as one SVG path, relative to `base`
+function panelOutline(base: DOMRect) {
     const n = (v: number) => Math.round(v * 10) / 10;
     let d = "";
     for (const el of document.querySelectorAll<HTMLElement>(CARD_SEL)) {
@@ -1153,7 +1272,7 @@ function updateCardClip() {
     const bg = document.querySelector("#app-mount .bg__960e4");
     if (bg && cardLayer.previousElementSibling !== bg) bg.after(cardLayer);
     if (document.hidden) return;
-    const d = cardOutline();
+    const d = panelOutline(cardLayer.getBoundingClientRect());
     if (d === cardPath) return;
     cardPath = d;
     cardLayer.style.clipPath = d ? `path("${d}")` : "inset(50%)";
@@ -1217,6 +1336,83 @@ export function applyCardMedia() {
     if (media.src !== src) media.src = src;
     if (media instanceof HTMLVideoElement) media.play().catch(() => { });
     updateCardClip();
+}
+
+/* ---------- embeds ---------- */
+
+const EMBED = ":is(.embedFull__623de, article[class*=embedFull_])";
+const EMBED_CSS = `
+html[data-dz-embed="solid"] ${EMBED}, html[data-dz-embed="gradient"] ${EMBED} {
+    background: linear-gradient(var(--dz-embed-angle), var(--dz-embed-1), var(--dz-embed-2)) !important;
+}
+html[data-dz-embed="glass"] ${EMBED} {
+    background: color-mix(in srgb, var(--dz-embed-1) var(--dz-embed-alpha), transparent) !important;
+    backdrop-filter: blur(14px) saturate(1.3);
+}
+html[data-dz-lite][data-dz-embed="glass"] ${EMBED} {
+    backdrop-filter: none;
+}`;
+
+/* ---------- liquid glass ----------
+   Glass panels (blurred) plus light that slowly flows over them: one layer over the app, clipped to the panel
+   outlines, whose soft color blobs only move (transform), so the GPU just slides them around. Nothing under the
+   panels changes, so their blur isn't recomputed every frame. */
+
+const LIQUID_SPEED: Record<string, number> = { slow: 1, medium: 0.6, fast: 0.35 };
+let liquidLayer: HTMLDivElement | null = null;
+let liquidTimer = 0;
+let liquidPath = "";
+
+function updateLiquidClip() {
+    if (!liquidLayer) return;
+    const host = document.querySelector("#app-mount [class*=baseLayer_]");
+    if (host && liquidLayer.parentElement !== host) host.append(liquidLayer);
+    if (document.hidden) return;
+    const d = panelOutline(liquidLayer.getBoundingClientRect());
+    if (d === liquidPath) return;
+    liquidPath = d;
+    liquidLayer.style.clipPath = d ? `path("${d}")` : "inset(50%)";
+}
+
+function removeLiquid() {
+    liquidLayer?.remove();
+    liquidLayer = null;
+    liquidPath = "";
+    clearInterval(liquidTimer);
+    window.removeEventListener("resize", updateLiquidClip);
+    sheet("liquid", "");
+}
+
+export function applyLiquid() {
+    const s = settings.store;
+    if (s.cardStyle !== "liquid" || s.lite) return removeLiquid();
+
+    const k = LIQUID_SPEED[s.liquidSpeed] ?? 1;
+    const white = s.liquidColor === "white";
+    const [c1, c2, c3] = white ? ["#ffffff", "#ffffff", "#ffffff"] : ["var(--dz-accent)", "var(--dz-bg-1)", "var(--dz-bg-2)"];
+    sheet("liquid", `
+.dz-liquid { position: absolute; inset: 0; z-index: 50; overflow: hidden; pointer-events: none; mix-blend-mode: screen; opacity: ${white ? 0.12 : 0.28}; clip-path: inset(50%); }
+.dz-liquid i { position: absolute; width: 70vmax; height: 70vmax; border-radius: 50%; filter: blur(60px); will-change: transform; }
+.dz-liquid i:nth-child(1) { left: -20vmax; top: -25vmax; background: radial-gradient(circle, ${c1} 0, transparent 65%); animation: dz-lq-a ${Math.round(38 * k)}s ease-in-out infinite alternate; }
+.dz-liquid i:nth-child(2) { right: -25vmax; top: 10vmax; background: radial-gradient(circle, ${c2} 0, transparent 65%); animation: dz-lq-b ${Math.round(46 * k)}s ease-in-out infinite alternate; }
+.dz-liquid i:nth-child(3) { left: 15vmax; bottom: -35vmax; background: radial-gradient(circle, ${c3} 0, transparent 65%); animation: dz-lq-c ${Math.round(54 * k)}s ease-in-out infinite alternate; }
+.dz-liquid i:nth-child(4) { left: -30vmax; top: -30vmax; width: 160vmax; height: 40vmax; border-radius: 0; filter: blur(40px); opacity: .5;
+    background: linear-gradient(100deg, transparent 35%, #ffffff 50%, transparent 65%); animation: dz-lq-sheen ${Math.round(30 * k)}s ease-in-out infinite; }
+@keyframes dz-lq-a { from { transform: translate3d(0, 0, 0) scale(1); } to { transform: translate3d(38vmax, 30vmax, 0) scale(1.25); } }
+@keyframes dz-lq-b { from { transform: translate3d(0, 0, 0) scale(1.1); } to { transform: translate3d(-42vmax, 22vmax, 0) scale(.85); } }
+@keyframes dz-lq-c { from { transform: translate3d(0, 0, 0) scale(.9); } to { transform: translate3d(28vmax, -40vmax, 0) scale(1.2); } }
+@keyframes dz-lq-sheen { 0% { transform: translate3d(-20vmax, 0, 0) rotate(8deg); } 50% { transform: translate3d(40vmax, 60vmax, 0) rotate(8deg); } 100% { transform: translate3d(-20vmax, 0, 0) rotate(8deg); } }
+@media (prefers-reduced-motion: reduce) { .dz-liquid i { animation: none !important; } }`);
+
+    if (!liquidLayer) {
+        liquidLayer = document.createElement("div");
+        liquidLayer.className = "dz-liquid";
+        liquidLayer.setAttribute("aria-hidden", "true");
+        liquidLayer.innerHTML = "<i></i><i></i><i></i><i></i>";
+        liquidTimer = window.setInterval(updateLiquidClip, 300);
+        window.addEventListener("resize", updateLiquidClip);
+    }
+    updateLiquidClip();
 }
 
 export function applyMedia() {
@@ -1301,11 +1497,13 @@ export function applyAll() {
     applyFont();
     applyMedia();
     applyCardMedia();
+    applyLiquid();
     applyLoading();
 }
 
 export function removeAll() {
     removeCardLayer();
+    removeLiquid();
     cardActive = false;
     if (cardUrl) URL.revokeObjectURL(cardUrl);
     cardUrl = null;
@@ -1323,5 +1521,5 @@ export function removeAll() {
         sheets[k] = null;
     }
     const d = document.documentElement.dataset;
-    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia"]) delete d[k];
+    for (const k of ["dzPlugin", "dzBg", "dzCardFill", "dzGuilds", "dzChannels", "dzMembers", "dzGlass", "dzGlassBlur", "dzActivities", "dzLite", "dzQuick", "dzDm", "dzCardMedia", "dzLiquid", "dzEmbed"]) delete d[k];
 }

@@ -21,7 +21,8 @@ const MAX_IMPORT_BYTES = 10 * 1024 * 1024;
 
 const GROUPS: Record<string, { label: string; keys: string[]; }> = {
     colors: { label: "Colors", keys: ["accentPreset", "accent", "customText", "textColor", "customIcons", "iconColor", "voice", "close", "minimize", "maximize"] },
-    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
+    cards: { label: "Cards", keys: ["cardPreset", "cardFill", "cardColor", "cardColor2", "cardAngle", "cardShape", "cardStyle", "glassOpacity", "glassBlur", "liquidColor", "liquidSpeed",
+        "embedStyle", "embedColor", "embedColor2", "embedAngle", "embedOpacity", "cardMedia", "cardMediaUrl", "cardMediaDim"] },
     background: { label: "Background", keys: ["background", "bgBase", "bgColor1", "bgColor2", "bgMediaSource", "bgMediaUrl", "bgMediaDim"] },
     layout: { label: "Layout & logo", keys: ["serverList", "serverListDirection", "channelsSide", "membersSide", "roleCount", "roleCountCustom", "font", "logoSource", "logoUrl", "logoSize", "quickIcon", "loadingScreen", "lite"] },
     header: { label: "Channel header", keys: ["headerName", "headerHash", "headerFollow", "headerButtons", "headerSearch", "dmHeaderName", "dmHeaderButtons", "dmHeaderSearch", "headerHiddenButtons"] },

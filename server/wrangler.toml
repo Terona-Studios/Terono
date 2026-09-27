@@ -13,3 +13,12 @@ DISCORD_CLIENT_ID = "1553751124475908136"
 binding = "DB"
 database_name = "terono-badges"
 database_id = "c8b27321-00e7-45a6-a21e-4ff76d35a57a"
+
+# live badge updates (one Durable Object holding the open WebSocket connections)
+[[durable_objects.bindings]]
+name = "HUB"
+class_name = "Hub"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Hub"]

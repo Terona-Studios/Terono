@@ -91,7 +91,8 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Theme presets:** 11 complete looks in one click, with a live preview. Customize them afterwards.
 - **Profiles:** save your setup or parts of it, switch between looks, export and import them as files, reset to defaults.
 - **Colors:** primary color (presets or any color), text color, icon color, voice/online color, window button colors.
-- **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid or glass, with opacity and blur.
+- **Cards:** Dark, Gray, White or Custom (solid or gradient). Sharp, Soft, Curved or Round corners. Solid, glass, or **liquid glass** (blurred glass with light slowly flowing over it).
+- **Embeds:** link previews in one color, a gradient or glass, separately from the cards.
 - **Card media:** your own image, GIF or video inside the panels, separate from the background.
 - **Background:** animated gradient, static gradient, solid color, or your own image, GIF or video.
 - **Fonts:** 22 built-in fonts (each shown in its own style in the list) or your own font file.
@@ -105,13 +106,13 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Loading screens:** Terono logo and "Terono Discord" while Discord starts, updates and connects.
 - **Updates inside Discord:** check for a new version, update and restart without leaving Discord.
 - **Plugins:** every Vencord plugin in one place, sorted by category, with search. Switch them on and off instantly and set them up. Ones that need a restart are listed under Updates.
-- **Badges:** everyone who uses Terono 1.0.5 – 1.1.5 gets the **Terono OG** badge. Add up to 3 badges of your own (any image, with a glow or outline in any color) and wear Discord's badges. Only people with Terono see them.
+- **Badges:** everyone who uses Terono 1.0.5 – 1.1.5 gets the **Terono OG** badge. Add up to 3 badges of your own (any image, with a glow or outline in any color) and wear Discord's badges. Only people with Terono see them, and changes show up for everyone instantly.
 - **Ctrl + 1** opens the Terono settings from anywhere (can be turned off).
 - **Performance mode** for slower PCs.
 
 ## Found a bug?
 
-Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings.
+Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings. Add the info from **Extras → Troubleshooting → Copy debug info** and a screenshot: it shows your versions and what Terono found, so the problem can be fixed.
 
 ## Updating
 

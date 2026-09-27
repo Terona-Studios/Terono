@@ -142,7 +142,8 @@ Your logo, menus, chat bar buttons, translate and performance settings are never
 - **Card colors:** **Dark**, **Gray**, **White** or **Custom**. Custom adds **Fill** (**Solid color** or **Gradient**, with **Gradient end** and **Gradient angle**) and **Card color**. The text color is under **Colors → Text**.
 - **Shape & material:**
   - **Corners:** **Sharp**, **Soft**, **Curved** or **Round**.
-  - **Material:** **Solid** or **Glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Menus, popups and buttons always stay solid so they stay readable.
+  - **Material:** **Solid**, **Glass** or **Liquid glass**. Glass is see-through; set it with **Glass opacity** and turn **Glass blur** on or off. Liquid glass is blurred glass with soft light slowly flowing over the panels: pick the **Light color** (your colors, or white for clear glass) and the **Flow speed**. Performance mode turns the flowing light off. Menus, popups and buttons always stay solid so they stay readable.
+- **Embeds (link previews):** **Like the cards**, **One color**, **Gradient** (with **Gradient end** and **Gradient angle**) or **Glass** (with **Glass opacity**). With one color or a gradient, the embed text turns dark or light by itself so it stays readable.
 - **Picture or video in the cards:** an image, GIF or video inside the panels, separate from the background.
   - Choose **URL** and paste a direct link in **Link**, or **File** and upload one (up to 100 MB).
   - It runs across all panels as one picture; the gaps between the panels keep the background.
@@ -179,7 +180,7 @@ You can combine them freely. For example, Server list **Right** + Channel list s
 
 ### Font & Logo
 
-- **Font:** 22 fonts, or **Custom (upload)** to use your own `.ttf`, `.otf`, `.woff` or `.woff2` file.
+- **Font:** click one of the 22 fonts (each name is written in its own font), or **Custom (upload)** to use your own `.ttf`, `.otf`, `.woff` or `.woff2` file.
 - **Home logo:** the Terono logo sits on the Home button by default. Set **Logo source** to **URL** and paste a **Logo link**, or to **File** and upload an image. **Logo size** makes it bigger or smaller; an empty link brings the Terono logo back.
 - **Quick settings icon:** the Terono icon next to the arrows that opens these settings.
 - **Terono loading screens:** the Terono logo and "Terono Discord" instead of Discord's logo while Discord starts, updates and connects, in your colors. The small update window ("Checking for updates…") changes from the next start.
@@ -214,7 +215,7 @@ In the **Badges** tab:
 - **Custom badges:** up to 3. Click **+** to choose any image; it's made 64×64 and still (a GIF keeps its first frame). Give it a name (shown when someone hovers it), optionally a **Glow** or **Outline** in any color, and click **Save**.
 - **Discord badges:** click the ones you want to wear (Nitro, Server Booster, HypeSquad, Early Supporter and more), then **Save Discord badges**. Staff, Partner and Moderator badges aren't available.
 
-You see your changes right away. Everyone else who uses Terono sees them within 30 minutes; people without Terono don't see them at all.
+Everyone who uses Terono sees your changes right away (open profiles update the next time they're opened). People without Terono don't see them at all.
 
 ### Performance
 
@@ -239,7 +240,10 @@ On a slow PC or a laptop on battery, turn on **Performance mode** (Extras tab). 
 
 ## 9. Troubleshooting
 
-**Found a bug?** Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings.
+**Found a bug?** Report it on the Terona Studios Discord: **[teronastudios.com/discord](https://teronastudios.com/discord)**. The link is also at the top of the Terono settings. Go to **Extras → Troubleshooting → Copy debug info** and paste it with a screenshot. It lists your Terono, Vencord and Discord versions and what Terono found on your screen (no messages or account details).
+
+**It works for my friend but not for me (or the other way round).**
+Check the version at the top of the Terono settings: you might be on an older Terono. Click **Check for updates**. If there's no update button, or it says the install can't update itself, download and run **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** once. It updates everything and keeps your settings. Browser versions don't update themselves: download the newest zip.
 
 **My antivirus flagged `Install-Terono.cmd`.**
 That was the old installer. It downloaded and ran a PowerShell script in one go, which Windows Defender treats as suspicious (`Trojan:Win32/Commando.A!ml`), even though the script itself was harmless. Delete it and use **[Terono-Setup.exe](https://github.com/Terona-Studios/Terono/releases/latest/download/Terono-Setup.exe)** instead. It updates the same install, so your settings are kept.

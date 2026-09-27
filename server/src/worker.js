@@ -14,6 +14,7 @@
 // PUT    /me/badge/<0-2>     { name, effect, color, image (base64 PNG, 64x64, static) }
 // DELETE /me/badge/<0-2>
 // PUT    /me/official        { badges: [key, ...] }
+// GET    /live               WebSocket: every badge change as it happens, { u: userId, e: entry | null }
 
 // official-look badges people may wear; Discord Staff, Partner and Moderator Programs are left out on purpose
 const OFFICIAL = new Set([
@@ -30,7 +31,8 @@ export default {
     async fetch(req, env) {
         if (req.method === "OPTIONS") return cors(new Response(null, { status: 204 }));
         try {
-            return cors(await route(req, env, new URL(req.url)));
+            const res = await route(req, env, new URL(req.url));
+            return res.status === 101 ? res : cors(res);
         } catch (e) {
             console.error(e);
             return cors(json({ error: "Server error" }, 500));
@@ -43,6 +45,7 @@ async function route(req, env, url) {
     const m = req.method;
 
     if (m === "GET" && path === "/badges") return badges(env);
+    if (m === "GET" && path === "/live") return env.HUB.get(env.HUB.idFromName("hub")).fetch(req);
     if (m === "GET" && path.startsWith("/img/")) return image(env, path.slice(5).replace(/\.png$/, ""));
     if (m === "POST" && path === "/hello") return hello(req, env);
     if (m === "GET" && path === "/authorize") return authorize(env, url);
@@ -63,7 +66,7 @@ async function route(req, env, url) {
 
 async function badges(env) {
     const snap = await env.DB.prepare("SELECT json, version, dirty FROM snapshot WHERE id = 1").first();
-    if (snap && !snap.dirty) return json(JSON.parse(snap.json), 200, "public, max-age=300");
+    if (snap && !snap.dirty) return json(JSON.parse(snap.json), 200, "public, max-age=30");
 
     // rebuild once after a change
     const users = await env.DB.prepare("SELECT id, og, official FROM users WHERE og = 1 OR official != '[]'").all();
@@ -80,7 +83,7 @@ async function badges(env) {
     const version = Date.now();
     const body = { v: version, u: out };
     await env.DB.prepare("UPDATE snapshot SET json = ?, version = ?, dirty = 0 WHERE id = 1").bind(JSON.stringify(body), version).run();
-    return json(body, 200, "public, max-age=300");
+    return json(body, 200, "public, max-age=30");
 }
 
 async function image(env, hash) {
@@ -98,7 +101,7 @@ async function hello(req, env) {
     if (!body || !SNOWFLAKE.test(body.id) || !inOgRange(body.v)) return json({ error: "Bad request" }, 400);
     const res = await env.DB.prepare("INSERT INTO users (id, og, updated) VALUES (?, 1, ?) ON CONFLICT (id) DO UPDATE SET og = 1, updated = excluded.updated WHERE og = 0")
         .bind(body.id, Date.now()).run();
-    if (res.meta.changes) await dirty(env);
+    if (res.meta.changes) await changed(env, body.id);
     return json({ ok: true });
 }
 
@@ -186,13 +189,13 @@ async function putBadge(req, env, user, slot) {
         env.DB.prepare("INSERT INTO badges (user_id, slot, name, effect, color, hash, image) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (user_id, slot) DO UPDATE SET name = excluded.name, effect = excluded.effect, color = excluded.color, hash = excluded.hash, image = excluded.image")
             .bind(user, slot, name, body.effect, body.color.toLowerCase(), hash, png),
     ]);
-    await dirty(env);
+    await changed(env, user);
     return json({ ok: true, hash });
 }
 
 async function delBadge(env, user, slot) {
     await env.DB.prepare("DELETE FROM badges WHERE user_id = ? AND slot = ?").bind(user, slot).run();
-    await dirty(env);
+    await changed(env, user);
     return json({ ok: true });
 }
 
@@ -202,7 +205,7 @@ async function putOfficial(req, env, user) {
     if (!list || list.length > OFFICIAL.size || !list.every(k => OFFICIAL.has(k))) return json({ error: "Bad badge list" }, 400);
     await env.DB.prepare("INSERT INTO users (id, official, updated) VALUES (?, ?, ?) ON CONFLICT (id) DO UPDATE SET official = excluded.official, updated = excluded.updated")
         .bind(user, JSON.stringify(list), Date.now()).run();
-    await dirty(env);
+    await changed(env, user);
     return json({ ok: true });
 }
 
@@ -226,6 +229,58 @@ function checkPng(b) {
 }
 
 const dirty = env => env.DB.prepare("UPDATE snapshot SET dirty = 1 WHERE id = 1").run();
+
+// one user's entry, as in /badges
+async function entryOf(env, id) {
+    const u = await env.DB.prepare("SELECT og, official FROM users WHERE id = ?").bind(id).first();
+    const custom = await env.DB.prepare("SELECT slot, name, effect, color, hash FROM badges WHERE user_id = ? ORDER BY slot").bind(id).all();
+    const e = {};
+    if (u?.og) e.o = 1;
+    const off = u ? JSON.parse(u.official) : [];
+    if (off.length) e.b = off;
+    if (custom.results.length) e.c = custom.results.map(b => ({ s: b.slot, n: b.name, e: b.effect, k: b.color, h: b.hash }));
+    return Object.keys(e).length ? e : null;
+}
+
+// after a change: the list is rebuilt on its next download, and everyone connected gets the change right away
+async function changed(env, id) {
+    await dirty(env);
+    const entry = await entryOf(env, id);
+    await env.HUB.get(env.HUB.idFromName("hub")).fetch("https://hub/broadcast", { method: "POST", body: JSON.stringify({ u: id, e: entry }) });
+}
+
+/* ---------------- live updates ----------------
+   One Durable Object holds every open connection (hibernating, so idle connections cost nothing) and sends each
+   change to all of them. */
+
+export class Hub {
+    constructor(state) {
+        this.state = state;
+        // keep-alive answered by Cloudflare itself, without waking this object
+        state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong"));
+    }
+
+    async fetch(req) {
+        if (new URL(req.url).pathname === "/broadcast") {
+            const msg = await req.text();
+            for (const ws of this.state.getWebSockets()) {
+                try { ws.send(msg); } catch { /* closing */ }
+            }
+            return new Response("ok");
+        }
+        if (req.headers.get("Upgrade") !== "websocket") return new Response("Expected a WebSocket", { status: 426 });
+        const [client, server] = Object.values(new WebSocketPair());
+        this.state.acceptWebSocket(server);
+        return new Response(null, { status: 101, webSocket: client });
+    }
+
+    // clients only listen; anything they send is ignored (a ping keeps some networks from dropping the connection)
+    webSocketMessage() { }
+
+    webSocketClose(ws, code) {
+        try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch { /* already closed */ }
+    }
+}
 
 function randomToken() {
     const bytes = crypto.getRandomValues(new Uint8Array(32));
