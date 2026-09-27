@@ -7,8 +7,9 @@
 import { ConnectSrc, CspPolicies, ImageSrc } from "@main/csp";
 import { RendererSettings } from "@main/settings";
 import { SETTINGS_DIR } from "@main/utils/constants";
-import { app, BrowserWindow, IpcMainInvokeEvent, NativeImage,nativeImage } from "electron";
-import { existsSync, rmSync, writeFileSync } from "fs";
+import { execFile } from "child_process";
+import { app, BrowserWindow, IpcMainInvokeEvent, NativeImage, nativeImage, shell } from "electron";
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 
 import { TERONO_LOGO } from "./assets";
@@ -133,6 +134,112 @@ export function setAppName(_: IpcMainInvokeEvent, name: string) {
         adopt(win);
         if (!win.isDestroyed()) win.setTitle(rawTitles.get(win) ?? win.getTitle());
     }
+    brandShortcuts();
+}
+
+/* ---------- Windows: the taskbar, Start and search show Discord's shortcuts, not the window ----------
+   So the Discord shortcuts (Start menu, Desktop, pinned taskbar) get the icon and, except the pinned one (renaming
+   it would unpin it), the name. What they were is saved first and put back when switching to Discord again.
+   Discord's updater recreates its shortcuts, so this is checked again at every start. */
+
+const ICO_FILE = join(SETTINGS_DIR, "terono-app-icon.ico");
+const LINKS_FILE = join(SETTINGS_DIR, "terono-shortcuts.json");
+const DISCORD_ICO = join(dirname(dirname(process.execPath)), "app.ico");
+
+interface SavedLink { dir: string; icon: string; iconIndex: number; name: string; current: string; }
+
+// an .ico holding PNG images (Windows Vista+), which shortcuts need
+function writeIco(img: NativeImage) {
+    const sizes = [256, 64, 48, 32, 16];
+    const pngs = sizes.map(n => img.resize({ width: n, height: n, quality: "best" }).toPNG());
+    const head = Buffer.alloc(6 + 16 * sizes.length);
+    head.writeUInt16LE(0, 0);
+    head.writeUInt16LE(1, 2);
+    head.writeUInt16LE(sizes.length, 4);
+    let offset = head.length;
+    sizes.forEach((n, i) => {
+        const e = 6 + 16 * i;
+        head.writeUInt8(n >= 256 ? 0 : n, e);
+        head.writeUInt8(n >= 256 ? 0 : n, e + 1);
+        head.writeUInt16LE(1, e + 4);
+        head.writeUInt16LE(32, e + 6);
+        head.writeUInt32LE(pngs[i].length, e + 8);
+        head.writeUInt32LE(offset, e + 12);
+        offset += pngs[i].length;
+    });
+    writeFileSync(ICO_FILE, Buffer.concat([head, ...pngs]));
+}
+
+function linkDirs() {
+    const roaming = app.getPath("appData");
+    return [
+        { dir: join(roaming, "Microsoft", "Windows", "Start Menu", "Programs", "Discord Inc"), rename: true },
+        { dir: join(roaming, "Microsoft", "Windows", "Start Menu", "Programs"), rename: true },
+        { dir: app.getPath("desktop"), rename: true },
+        { dir: join(roaming, "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar"), rename: false },
+    ];
+}
+
+const isDiscordLink = (target: string, args: string) =>
+    /[\\/]Discord[\\/](Update|Discord)\.exe$/i.test(target) && (!/Update\.exe$/i.test(target) || /Discord\.exe/i.test(args));
+
+const safeName = (n: string) => n.replace(/[<>:"/\\|?*\x00-\x1f]/g, "").trim();
+
+function brandShortcuts() {
+    if (process.platform !== "win32") return;
+    try {
+        const saved: Record<string, SavedLink> = existsSync(LINKS_FILE) ? JSON.parse(readFileSync(LINKS_FILE, "utf8")) : {};
+        const custom = appIcon && !appIcon.isEmpty();
+        if (custom) writeIco(appIcon!);
+        const name = safeName(appName);
+        let changed = false;
+
+        for (const { dir, rename } of linkDirs()) {
+            if (!existsSync(dir)) continue;
+            for (const file of readdirSync(dir)) {
+                if (!file.toLowerCase().endsWith(".lnk")) continue;
+                const path = join(dir, file);
+                let link: Electron.ShortcutDetails;
+                try { link = shell.readShortcutLink(path); } catch { continue; }
+                if (!isDiscordLink(link.target, link.args ?? "")) continue;
+
+                // first time: remember how it was; later found by its original or its current name in this folder
+                const key = Object.keys(saved).find(k => saved[k].dir === dir && (saved[k].name === file || saved[k].current === file)) ?? `${dir}|${file}`;
+                saved[key] ??= { dir, icon: link.icon ?? "", iconIndex: link.iconIndex ?? 0, name: file, current: file };
+                const orig = saved[key];
+
+                const icon = custom ? ICO_FILE : orig.icon;
+                const iconIndex = custom ? 0 : orig.iconIndex;
+                if ((link.icon ?? "") !== icon || (link.iconIndex ?? 0) !== iconIndex) {
+                    shell.writeShortcutLink(path, "update", { ...link, icon, iconIndex });
+                    changed = true;
+                }
+
+                if (rename) {
+                    const wanted = name ? `${name}.lnk` : orig.name;
+                    const target = join(dir, wanted);
+                    if (wanted !== file) {
+                        // Discord's updater may have put a fresh "Discord.lnk" next to a renamed one: keep one
+                        if (existsSync(target)) unlinkSync(path);
+                        else renameSync(path, target);
+                        changed = true;
+                    }
+                    orig.current = wanted;
+                }
+            }
+        }
+
+        // back to plain Discord: nothing left to remember
+        if (!custom && !name) {
+            if (existsSync(LINKS_FILE)) rmSync(LINKS_FILE, { force: true });
+            if (existsSync(ICO_FILE)) rmSync(ICO_FILE, { force: true });
+        } else writeFileSync(LINKS_FILE, JSON.stringify(saved));
+
+        // Explorer caches shortcut icons: ask it to refresh
+        if (changed) execFile("ie4uinit.exe", ["-show"], { windowsHide: true }, () => { });
+    } catch (e) {
+        console.error("[Terono] shortcuts", e);
+    }
 }
 
 // source: "discord" | "terono" | "file"; a new file comes as a PNG data URL and is kept next to Vencord's settings
@@ -148,6 +255,7 @@ export function setAppIcon(_: IpcMainInvokeEvent, source: string, dataUrl?: stri
         adopt(win);
         if (!win.isDestroyed()) win.setIcon(icon);
     }
+    brandShortcuts();
     return true;
 }
 
@@ -156,6 +264,8 @@ export function setAppIcon(_: IpcMainInvokeEvent, source: string, dataUrl?: stri
     if (s?.enabled) {
         appName = typeof s.appName === "string" ? s.appName.trim().slice(0, 40) : "";
         appIcon = iconFor(s.appIcon);
+        // Discord's own updates recreate its shortcuts: brand them again (only if something is set or still to undo)
+        if (appName || appIcon || existsSync(LINKS_FILE)) app.whenReady().then(brandShortcuts);
     }
 }
 

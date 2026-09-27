@@ -108,7 +108,7 @@ https://cdn.jsdelivr.net/gh/Terona-Studios/Terono@main/theme/Terono.theme.css
 - **Plugins:** every Vencord plugin in one place, sorted by category, with search. Switch them on and off instantly and set them up. Ones that need a restart are listed under Updates.
 - **Badges:** everyone who uses Terono 1.0.5 – 1.1.5 gets the **Terono OG** badge. Add up to 3 badges of your own (any image, with a glow or outline in any color) and wear Discord's badges. Only people with Terono see them, and changes show up for everyone instantly.
 - **Ctrl + 1** opens the Terono settings from anywhere (can be turned off).
-- **Your own app:** your app name in the window title, the Terono logo or your own picture as the window and taskbar icon, and your own pictures for Discord's icons (Friends, Shop, microphone, settings or any button by its name).
+- **Your own app:** your app name and icon (the Terono logo or your own picture) for the window, taskbar, Start menu and search, and your own pictures for Discord's icons (Friends, Shop, microphone, settings or any button by its name).
 - **Light on your PC:** moving effects update 30 times a second instead of at your monitor's full refresh rate, and stop completely while Discord is in the background (e.g. while you play). **Performance mode** for slower PCs.
 
 ## Found a bug?

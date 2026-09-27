@@ -208,8 +208,8 @@ In the **Profiles** tab:
 
 ### App & Icons
 
-- **App name:** replaces "Discord" in the window title (taskbar preview, Alt+Tab). Leave it empty for Discord.
-- **App icon:** **Discord**, the **Terono logo** or **My own picture** (any image) for the window and taskbar icon. A shortcut pinned to the taskbar keeps its own icon. In a browser this changes the tab icon.
+- **App name:** replaces "Discord" in the window title and, on Windows, the name of the Start menu entry, search result and Desktop shortcut (the pinned taskbar icon keeps its name so it stays pinned). Leave it empty for Discord.
+- **App icon:** **Discord**, the **Terono logo** or **My own picture** (any image). On Windows it changes the window, the taskbar button (also when pinned), the Start menu, search and the Desktop shortcut. Windows can take a few seconds to show a new icon everywhere. In a browser this changes the tab icon. Switching back to **Discord** puts every shortcut back exactly as it was.
 - **Icons:** click **Change** under Friends, Shop, Nitro, Add a Server, Discover, Microphone, Headphones, User settings, Inbox, Help, Pinned messages or Member list and pick any picture. **Reset** brings the normal icon back. For any other button, type its name as shown when you hover it (e.g. `Start Video Call`) and click **Choose picture**.
 
 ### Badges

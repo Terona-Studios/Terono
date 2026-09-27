@@ -687,14 +687,14 @@ export const settings = definePluginSettings({
     },
     appName: {
         type: OptionType.STRING,
-        description: "Your app's name: replaces \"Discord\" in the window title (taskbar, Alt+Tab). Empty = Discord.",
+        description: "Your app's name: replaces \"Discord\" in the window title and, on Windows, in the Start menu, search and Desktop shortcut. Empty = Discord.",
         default: "",
         placeholder: "Discord",
         isValid: (v: string) => v.length <= 40 || "40 characters at most",
     },
     appIcon: {
         type: OptionType.SELECT,
-        description: "Window and taskbar icon (desktop app; the tab icon in a browser). A pinned taskbar shortcut keeps its own icon.",
+        description: "Icon of the window, the taskbar (also when pinned), the Start menu, search and the Desktop shortcut (Windows; on other systems the window icon). In a browser: the tab icon. Switching back to Discord restores everything.",
         options: [
             { label: "Discord", value: "discord", default: true },
             { label: "Terono logo", value: "terono" },
